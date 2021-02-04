@@ -32,6 +32,7 @@ import SendIcon from "@material-ui/icons/Send";
 import { FixedSizeList as List } from 'react-window';
 import { useSnackbar } from "notistack";
 import moment from "moment";
+import axios from "axios";
 
 const useStyles = makeStyles((theme: Theme) => ({
   root: {
@@ -68,9 +69,14 @@ const useStyles = makeStyles((theme: Theme) => ({
     margin: theme.spacing(1),
     minWidth: 250,
   },
-  buttonGroup: {
-    backgroundColor: "green",
+  selected: {
+    backgroundColor: "#00C805",
+    color: "black",
     width: "100%"
+  },
+  unSelected: {
+    width: "100%",
+    color: "white",
   }
 }));
 
@@ -101,45 +107,44 @@ function DashboardView() {
     getOptionChain();
   };
 
-  const getStockPrice = () => {
-    fetch('/stock?ticker=' + symbol.toLowerCase(), {
-      method: 'GET'
-    }).then(response => {
-      console.log(response);
-    })
-    .catch(err => {
-      console.log('There was an error: ', err);
-      enqueueSnackbar(`Error searching for ${symbol.toUpperCase()} stock price`,
-                      {variant: 'error'});
-    });
+  const getStockPrice = async () => {
+    axios.get('/stock?ticker=' + symbol.toLowerCase())
+      .then((response) => {
+        if (response.status === STATUS_OK) {
+          enqueueSnackbar("Successfully Loaded Stock Price", {variant: "success"});
+          let currPrice = response.data.chart.result[0].meta.regularMarketPrice;
+          let prevPrice = response.data.chart.result[0].meta.chartPreviousClose;
+          setSymbolPriceData({
+            price: currPrice,
+            diff: currPrice - prevPrice
+          });
+        }
+      })
+      .catch((error) => {
+        console.log(error);
+        enqueueSnackbar(`Error searching for ${symbol.toUpperCase()} price`,
+                        {variant: 'error'});
+      });
   };
 
   const getOptionChain = () => {
-    fetch('/stock?ticker=' + symbol.toLowerCase(), {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      }
-    })
-      .then(response => {
+    axios.get('/option?ticker=' + symbol.toLowerCase())
+      .then((response) => {
         if (response.status === STATUS_OK) {
-          enqueueSnackbar("Successfully Loaded OptChain", {variant: "success"});
+          enqueueSnackbar("Successfully Loaded Option Chain", {variant: "success"});
+          let optionsJson = response.data.optionChain.result[0].options[0];
+          let expirationDates = response.data.optionChain.result[0].expirationDates;
+          console.log(optionsJson);
+          setOptionChain({
+            calls: optionsJson.calls,
+            puts: optionsJson.puts,
+          });
+          setExpiration(expirationDates[0]);
+          setExpirationDates(expirationDates);
         }
-        return response.json();
       })
-      .then(data => {
-        let optionsJson = data.optionChain.result[0].options[0];
-        let expirationDates = data.optionChain.result[0].expirationDates;
-        console.log(optionsJson);
-        setOptionChain({
-          calls: optionsJson.calls,
-          puts: optionsJson.puts,
-        });
-        setExpiration(expirationDates[0]);
-        setExpirationDates(expirationDates);
-      })
-      .catch(err => {
-        console.log('There was an error: ', err);
+      .catch((error) => {
+        console.log(error);
         enqueueSnackbar(`Error searching for ${symbol.toUpperCase()} options`,
                         {variant: 'error'});
       });
@@ -177,7 +182,7 @@ function DashboardView() {
                   <Grid item xs={12}>
                     <Typography className={classes.dialog}>
                       {symbol.toUpperCase() + " "}
-                      <span className={symbolPriceData.diff > 0 ? classes.tickerLoss : classes.tickerGain}>
+                      <span className={symbolPriceData.diff < 0 ? classes.tickerLoss : classes.tickerGain}>
                         ${symbolPriceData.price}
                       </span>
                     </Typography>
@@ -186,15 +191,15 @@ function DashboardView() {
                     <ButtonGroup>
                       <Button color="primary"
                         onClick={(e) => setBuyOrSell("buy")}
-                        variant={buyOrSell === "buy" ? "contained" : "outlined"}
-                        className={classes.buttonGroup}
+                        variant={"outlined"}
+                        className={buyOrSell === "buy" ? classes.selected : classes.unSelected}
                       >
                         Buy
                       </Button>
                       <Button color="primary"
                         onClick={(e) => setBuyOrSell("sell")}
-                        variant={buyOrSell === "sell" ? "contained" : "outlined"}
-                        className={classes.buttonGroup}
+                        variant={"outlined"}
+                        className={buyOrSell === "sell" ? classes.selected : classes.unSelected}
                       >
                         Sell
                       </Button>
@@ -204,15 +209,15 @@ function DashboardView() {
                     <ButtonGroup className={classes.buttonGroup}>
                       <Button color="primary"
                         onClick={(e) => setCallsOrPuts("calls")}
-                        variant={callsOrPuts === "calls" ? "contained" : "outlined"}
-                        className={classes.buttonGroup}
+                        variant={"outlined"}
+                        className={callsOrPuts === "calls" ? classes.selected : classes.unSelected}
                       >
                         Calls
                       </Button>
                       <Button color="primary"
                         onClick={(e) => setCallsOrPuts("puts")}
-                        variant={callsOrPuts === "puts" ? "contained" : "outlined"}
-                        className={classes.buttonGroup}
+                        variant={"outlined"}
+                        className={callsOrPuts === "puts" ? classes.selected : classes.unSelected}
                       >
                         Puts
                       </Button>

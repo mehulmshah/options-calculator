@@ -3,12 +3,10 @@
  * attributes necessary.
  */
 
-import express from "express";
-import helmet from "helmet";
-import OK from "http-status-codes";
-import path from "path";
-import createProxyMiddleware from "http-proxy-middleware";
-import axios from "axios";
+var express = require("express");
+var helmet = require("helmet");
+var axios = require("axios");
+var path = require("path");
 
 // Declare Express app
 const app = express();
@@ -25,19 +23,31 @@ app.get("/login", function (req, res) {
   res.status(OK).send("Login Successful");
 });
 
-const YAHOO_API_OPTIONS_URL = 'https://query2.finance.yahoo.com/v7/finance/options/';
-const YAHOO_API_PRICE_URL = 'https://query2.finance.yahoo.com/v8/finance/chart/';
-
 app.get("/stock", async function (req, res) {
+  const YAHOO_API_PRICE_URL = 'https://query2.finance.yahoo.com/v8/finance/chart/';
   let ticker = req.query.ticker;
   axios.get(YAHOO_API_PRICE_URL + ticker)
     .then(response => {
-      console.log(response);
-      return response
+      res.status(200);
+      res.send(response.data);
     })
     .catch(err => {
       console.log('There was an error: ', err);
-      return {'err': 'test err'}
+      return {'err': err}
+    });
+});
+
+app.get("/option", async function (req, res) {
+  const YAHOO_API_OPTIONS_URL = 'https://query2.finance.yahoo.com/v7/finance/options/';
+  let ticker = req.query.ticker;
+  axios.get(YAHOO_API_OPTIONS_URL + ticker)
+    .then(response => {
+      res.status(200);
+      res.send(response.data);
+    })
+    .catch(err => {
+      console.log('There was an error: ', err);
+      return {'err': err}
     });
 });
 
@@ -54,11 +64,11 @@ if (process.env.NODE_ENV === "production") {
 } else {
   app.get(
     "*",
-    createProxyMiddleware({
+    require("http-proxy-middleware").createProxyMiddleware({
       target: "http://localhost:3001/",
       changeOrigin: true,
     })
   );
 }
 
-export default app;
+module.exports = app;

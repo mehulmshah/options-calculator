@@ -4,8 +4,8 @@
  * Module dependencies.
  */
 
-import app from "../src/app.js";
-import http from "http";
+var app = require("../src/app");
+var http = require("http");
 
 
 /**
