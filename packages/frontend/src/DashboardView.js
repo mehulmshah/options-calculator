@@ -23,13 +23,10 @@ import {
   makeStyles,
   MenuItem,
   Select,
-  TableCell,
-  TableRow,
   TextField,
   Theme,
   Typography
 } from "@material-ui/core";
-import { ToggleButton, ToggleButtonGroup } from '@material-ui/lab';
 import LibraryAddCheckRoundedIcon from '@material-ui/icons/LibraryAddCheckRounded';
 import SendIcon from "@material-ui/icons/Send";
 import { FixedSizeList as List } from 'react-window';
@@ -72,13 +69,11 @@ const useStyles = makeStyles((theme: Theme) => ({
     minWidth: 250,
   },
   buttonGroup: {
+    backgroundColor: "green",
     width: "100%"
   }
 }));
 
-const PROXY_URL = 'https://cors-anywhere.herokuapp.com/';
-const YAHOO_API_OPTIONS_URL = 'https://query2.finance.yahoo.com/v7/finance/options/';
-const YAHOO_API_PRICE_URL = 'https://query2.finance.yahoo.com/v8/finance/chart/';
 const STATUS_OK = 200;
 
 function DashboardView() {
@@ -107,36 +102,20 @@ function DashboardView() {
   };
 
   const getStockPrice = () => {
-    fetch(PROXY_URL + YAHOO_API_PRICE_URL + symbol.toLowerCase(), {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      }
+    fetch('/stock?ticker=' + symbol.toLowerCase(), {
+      method: 'GET'
+    }).then(response => {
+      console.log(response);
     })
-      .then(response => {
-        if (response.status === STATUS_OK) {
-          enqueueSnackbar("Successfully Loaded Price", {variant: "success"});
-        }
-        return response.json();
-      })
-      .then(data => {
-        console.log(data);
-        let currPrice = data.chart.result[0].meta.regularMarketPrice;
-        let prevClose = data.chart.result[0].meta.previousClose;
-        setSymbolPriceData({
-          price: currPrice.toFixed(2),
-          diff: prevClose - currPrice,
-        });
-      })
-      .catch(err => {
-        console.log('There was an error: ', err);
-        enqueueSnackbar(`Error searching for ${symbol.toUpperCase()} price`,
-                        {variant: 'error'});
-      });
+    .catch(err => {
+      console.log('There was an error: ', err);
+      enqueueSnackbar(`Error searching for ${symbol.toUpperCase()} stock price`,
+                      {variant: 'error'});
+    });
   };
 
   const getOptionChain = () => {
-    fetch(PROXY_URL + YAHOO_API_OPTIONS_URL + symbol.toLowerCase(), {
+    fetch('/stock?ticker=' + symbol.toLowerCase(), {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -204,7 +183,7 @@ function DashboardView() {
                     </Typography>
                   </Grid>
                   <Grid item>
-                    <ButtonGroup className={classes.buttonGroup}>
+                    <ButtonGroup>
                       <Button color="primary"
                         onClick={(e) => setBuyOrSell("buy")}
                         variant={buyOrSell === "buy" ? "contained" : "outlined"}
@@ -225,14 +204,14 @@ function DashboardView() {
                     <ButtonGroup className={classes.buttonGroup}>
                       <Button color="primary"
                         onClick={(e) => setCallsOrPuts("calls")}
-                        variant={callsOrPuts === "calls" ? "contained" : "none"}
+                        variant={callsOrPuts === "calls" ? "contained" : "outlined"}
                         className={classes.buttonGroup}
                       >
                         Calls
                       </Button>
                       <Button color="primary"
                         onClick={(e) => setCallsOrPuts("puts")}
-                        variant={callsOrPuts === "puts" ? "contained" : "text"}
+                        variant={callsOrPuts === "puts" ? "contained" : "outlined"}
                         className={classes.buttonGroup}
                       >
                         Puts

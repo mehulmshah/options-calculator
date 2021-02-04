@@ -1,50 +1,32 @@
 {
-  "name": "royal-portal",
-  "version": "0.1.0",
+  "name": "options-calculator",
   "private": true,
-  "dependencies": {
-    "@material-ui/core": "^4.11.2",
-    "@material-ui/icons": "^4.11.2",
-    "@material-ui/lab": "^4.0.0-alpha.57",
-    "@testing-library/jest-dom": "^5.11.4",
-    "@testing-library/react": "^11.1.0",
-    "@testing-library/user-event": "^12.1.10",
-    "formik": "^2.2.6",
-    "moment": "^2.29.1",
-    "notistack": "^1.0.3",
-    "prettier": "^2.2.1",
-    "process": "^0.11.10",
-    "react": "^17.0.1",
-    "react-dom": "^17.0.1",
-    "react-router": "^5.2.0",
-    "react-router-dom": "^5.2.0",
-    "react-scripts": "4.0.1",
-    "react-window": "^1.8.6",
-    "web-vitals": "^0.2.4",
-    "yup": "^0.32.8"
-  },
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "start:dev": "concurrently \"yarn workspace backend start:dev\" \"PORT=3001 yarn workspace frontend start\"",
+    "start": "yarn build && yarn workspace backend run start",
+    "build": "yarn workspaces run build && cp -r packages/frontend/build/ packages/backend/dist/public/",
+    "test": "yarn workspaces run test"
   },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
+  "devDependencies": {
+    "concurrently": "^5.2.0",
+    "husky": "^4.2.5",
+    "lint-staged": "^10.2.2",
+    "prettier": "^2.0.5"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "**/*.{js,jsx,,json,css,scss,md}": [
+      "prettier --write"
     ]
   },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
+  "dependencies": {
+    "atob": "^2.1.2"
   }
 }
