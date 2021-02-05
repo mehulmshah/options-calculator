@@ -3,6 +3,16 @@
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 It is currently a single-page webapp that pulls stock price & option chain information for research purposes.
 
+To begin, make sure you have the necessary Tools, and then clone the project. Use `yarn install` to install all of the necessary packages. Then simply run `yarn start:dev`
+
+## Tools
+
+You will need the following tools:
+  * [yarn](https://yarnpkg.com/)
+  * [Node](https://nodejs.org/en/)
+
+
+
 ## Available Scripts
 
 In the project directory, you can run:
