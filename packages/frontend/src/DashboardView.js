@@ -51,6 +51,9 @@ import {
   Tooltip,
 } from "recharts";
 
+const GainColor = "#00C805";
+const LossColor = "#FF5000";
+
 const useStyles = makeStyles((theme: Theme) => ({
   root: {
     minWidth: 600,
@@ -79,36 +82,33 @@ const useStyles = makeStyles((theme: Theme) => ({
   leftSide: {
     marginLeft: "auto",
   },
-  tickerGain: {
-    color: theme.palette.primary.dark,
-  },
-  tickerLoss: {
-    color: "red",
+  ticker: {
+    color: ({ gainOrLoss }) => gainOrLoss,
   },
   formControl: {
     margin: theme.spacing(1),
     minWidth: 250,
   },
   selected: {
-    backgroundColor: "#00C805",
+    backgroundColor: ({ gainOrLoss }) => gainOrLoss,
     color: "white",
     width: "100%",
     "&:hover": {
-      backgroundColor: "#00C805",
+      backgroundColor: ({ gainOrLoss }) => gainOrLoss,
       color: "white",
     },
   },
   unSelected: {
     width: "100%",
-    backgroundColor: "#00C8051A",
-    color: "#00C805",
+    backgroundColor: ({ gainOrLoss }) => gainOrLoss + "1A",
+    color: ({ gainOrLoss }) => gainOrLoss,
     "&:hover": {
-      backgroundColor: "#00C8054D",
+      backgroundColor: ({ gainOrLoss }) => gainOrLoss + "4D",
     },
   },
   tableRowLightMode: {
     "&.Mui-selected, &.Mui-selected:hover": {
-      backgroundColor: "#00C8051A",
+      backgroundColor: ({ gainOrLoss }) => gainOrLoss + "1A",
       color: "white",
     },
   },
@@ -116,13 +116,18 @@ const useStyles = makeStyles((theme: Theme) => ({
     width: "100%",
     maxHeight: 400,
   },
+  test: {
+    backgroundColor: ({ gainOrLoss }) => gainOrLoss,
+    "&:hover": {
+      backgroundColor: ({ gainOrLoss }) => gainOrLoss,
+    },
+  },
 }));
 
 const STATUS_OK = 200;
 
 function DashboardView() {
   const { enqueueSnackbar } = useSnackbar();
-  const classes = useStyles();
 
   const [contactUs, setContactUs] = React.useState(false);
   const [name, setName] = React.useState("");
@@ -135,9 +140,13 @@ function DashboardView() {
     calls: [0],
     puts: [0],
   });
+  const [chosenOptionChain, setChosenOptionChain] = React.useState([0]);
   const [buyOrSell, setBuyOrSell] = React.useState("buy");
-  const [callsOrPuts, setCallsOrPuts] = React.useState("calls");
+  const [callsOrPuts, setCallsOrPuts] = React.useState("call");
   const [selectedOption, setSelectedOption] = React.useState(0);
+  const [gainOrLoss, setGainOrLoss] = React.useState(GainColor);
+
+  const classes = useStyles({ gainOrLoss });
 
   const handleSubmitContact = () => {
     enqueueSnackbar("Request successfully submitted", { variant: "success" });
@@ -161,6 +170,7 @@ function DashboardView() {
           let currPrice = response.data.chart.result[0].meta.regularMarketPrice;
           let prevPrice = response.data.chart.result[0].meta.chartPreviousClose;
           setSymbolPrice(currPrice);
+          setGainOrLoss(currPrice - prevPrice > 0 ? GainColor : LossColor);
         }
       })
       .catch((error) => {
@@ -171,95 +181,101 @@ function DashboardView() {
       });
   };
 
-  React.useEffect(() => {
-    console.log("got here");
-    getOptionChain(expiration.toString());
-  }, [expiration]);
-
-  const getOptionChain = (exp = "") => {
-    let endpoint = "/option?ticker=" + symbol.toLowerCase();
-    if (exp !== "") {
-      endpoint += "&exp=" + exp;
-    }
-    console.log(endpoint);
-    axios
-      .get(endpoint)
-      .then((response) => {
-        if (response.status === STATUS_OK) {
-          enqueueSnackbar("Successfully Loaded Option Chain", {
-            variant: "success",
-          });
-          let optionsJson = response.data.optionChain.result[0].options[0];
-          let expirationDates =
-            response.data.optionChain.result[0].expirationDates;
-          setOptionChain({
-            calls: optionsJson.calls,
-            puts: optionsJson.puts,
-          });
-          if (exp === "") {
-            setExpiration(expirationDates[0]);
+  const getOptionChain = React.useCallback(
+    (exp = "") => {
+      let endpoint = "/option?ticker=" + symbol.toLowerCase();
+      if (exp !== "") {
+        endpoint += "&exp=" + exp;
+      }
+      axios
+        .get(endpoint)
+        .then((response) => {
+          if (response.status === STATUS_OK) {
+            enqueueSnackbar("Successfully Loaded Option Chain", {
+              variant: "success",
+            });
+            let optionsJson = response.data.optionChain.result[0].options[0];
+            let expirationDates =
+              response.data.optionChain.result[0].expirationDates;
+            setOptionChain({
+              calls: optionsJson.calls,
+              puts: optionsJson.puts,
+            });
+            setChosenOptionChain(optionsJson.calls);
+            if (exp === "") {
+              setExpiration(expirationDates[0]);
+            }
+            setExpirationDates(expirationDates);
           }
-          setExpirationDates(expirationDates);
-        }
-      })
-      .catch((error) => {
-        console.log(error);
-        enqueueSnackbar(`Error searching for ${symbol.toUpperCase()} options`, {
-          variant: "error",
+        })
+        .catch((error) => {
+          console.log(error);
+          enqueueSnackbar(
+            `Error searching for ${symbol.toUpperCase()} options`,
+            {
+              variant: "error",
+            }
+          );
         });
+    },
+    [enqueueSnackbar, symbol]
+  );
+
+  React.useEffect(() => {
+    if (expiration !== "") {
+      getOptionChain(expiration);
+    }
+  }, [expiration, getOptionChain]);
+
+  const displayCallOptions = () => {
+    return chosenOptionChain
+      .filter((call) => call)
+      .map((call) => {
+        let sign = call.percentChange > 0 ? "+" : "-";
+        return (
+          <TableRow
+            item
+            key={call.contractSymbol}
+            selected={call.strike === selectedOption}
+            onClick={() => setSelectedOption(call.strike)}
+            className={classes.tableRowLightMode}
+          >
+            <TableCell className={classes.bold}>${call.strike}</TableCell>
+            <TableCell>${(call.strike + call.lastPrice).toFixed(2)}</TableCell>
+            <TableCell>
+              {sign + Math.abs(call.percentChange).toFixed(2)}%
+            </TableCell>
+            <TableCell>
+              {sign}${Math.abs(call.change).toFixed(2)}
+            </TableCell>
+            <TableCell>
+              <Button
+                className={classes.test}
+                variant={
+                  call.strike === selectedOption ? "contained" : "outlined"
+                }
+              >
+                ${call.lastPrice.toFixed(2)}
+              </Button>
+            </TableCell>
+          </TableRow>
+        );
       });
   };
 
-  const displayCallOptions = () => {
-    let callOpts = optionChain.calls;
-    return callOpts.map((call) => {
-      if (!call) {
-        return;
-      }
-      let sign = call.percentChange > 0 ? "+" : "-";
-      return (
-        <TableRow
-          item
-          key={call.contractSymbol}
-          selected={call.strike === selectedOption}
-          onClick={() => setSelectedOption(call.strike)}
-          className={classes.tableRowLightMode}
-        >
-          <TableCell className={classes.bold}>${call.strike}</TableCell>
-          <TableCell>${(call.strike + call.lastPrice).toFixed(2)}</TableCell>
-          <TableCell>{sign + call.percentChange.toFixed(2)}%</TableCell>
-          <TableCell>
-            {sign}${call.change.toFixed(2)}
-          </TableCell>
-          <TableCell>
-            <Button
-              color="primary"
-              variant={
-                call.strike === selectedOption ? "contained" : "outlined"
-              }
-            >
-              ${call.lastPrice.toFixed(2)}
-            </Button>
-          </TableCell>
-        </TableRow>
-      );
-    });
-  };
-
   const testBS = () => {
-    let option = optionChain.calls.find(
+    let option = chosenOptionChain.find(
       (call) => call.strike === selectedOption
     );
     let timeDiff =
       (moment().diff(moment.unix(option.expiration).utc(), "days") + 1) / 365;
-    console.log(option);
     let output = blackScholes.blackScholes(
       symbolPrice,
       option.strike,
       timeDiff,
       option.impliedVolatility,
       0.08,
-      "call"
+      callsOrPuts
     );
 
     let delta = greeks.getDelta(
@@ -268,7 +284,7 @@ function DashboardView() {
       timeDiff,
       option.impliedVolatility,
       0.08,
-      "call"
+      callsOrPuts
     );
     let gamma = greeks.getGamma(
       symbolPrice,
@@ -283,7 +299,7 @@ function DashboardView() {
       timeDiff,
       option.impliedVolatility,
       0.08,
-      "call"
+      callsOrPuts
     );
     return (
       <div>
@@ -305,9 +321,12 @@ function DashboardView() {
       let d = today.clone().add(i, "days");
       days.push(d.format());
     }
-    let option = optionChain.calls.find(
+    let option = chosenOptionChain.find(
       (call) => call.strike === selectedOption
     );
+    if (!option) {
+      return;
+    }
     let data = [];
     days.forEach((d) => {
       let tempObj = {};
@@ -320,15 +339,14 @@ function DashboardView() {
         timeDiffInYears,
         option.impliedVolatility,
         0.08,
-        "call"
+        callsOrPuts
       );
       tempObj.date = d;
       tempObj.price = output;
       data.push(tempObj);
     });
-    console.log(data);
     return (
-      <LineChart width={900} height={500} data={data}>
+      <LineChart width={600} height={500} data={data}>
         <Line type="monotone" dataKey="price" stroke="#8884d8" />
         <CartesianGrid stroke="#ccc" strokeDasharray="5 5" />
         <XAxis dataKey="date" />
@@ -351,18 +369,20 @@ function DashboardView() {
               subheader="Democratize Earnings"
             />
             <CardContent>
-              {symbolPrice !== 0 && optionChain.calls.length > 0 ? (
+              {symbolPrice !== 0 && chosenOptionChain.length > 0 ? (
                 <Grid container spacing={2} alignItems="center">
                   <Grid item xs={12}>
                     <Typography className={classes.dialog}>
                       {symbol.toUpperCase() + " "}
-                      <span className={classes.tickerGain}>${symbolPrice}</span>
+                      <span className={classes.ticker}>
+                        ${symbolPrice.toFixed(2)}
+                      </span>
                     </Typography>
                   </Grid>
                   <Grid item>
                     <ButtonGroup>
                       <Button
-                        color="primary"
+                        color="inherit"
                         onClick={(e) => setBuyOrSell("buy")}
                         variant={"outlined"}
                         className={
@@ -374,7 +394,7 @@ function DashboardView() {
                         Buy
                       </Button>
                       <Button
-                        color="primary"
+                        color="inherit"
                         onClick={(e) => setBuyOrSell("sell")}
                         variant={"outlined"}
                         className={
@@ -390,11 +410,14 @@ function DashboardView() {
                   <Grid item>
                     <ButtonGroup className={classes.buttonGroup}>
                       <Button
-                        color="primary"
-                        onClick={(e) => setCallsOrPuts("calls")}
+                        color="inherit"
+                        onClick={(e) => {
+                          setCallsOrPuts("call");
+                          setChosenOptionChain(optionChain.calls);
+                        }}
                         variant={"outlined"}
                         className={
-                          callsOrPuts === "calls"
+                          callsOrPuts === "call"
                             ? classes.selected
                             : classes.unSelected
                         }
@@ -402,11 +425,14 @@ function DashboardView() {
                         Calls
                       </Button>
                       <Button
-                        color="primary"
-                        onClick={(e) => setCallsOrPuts("puts")}
+                        color="inherit"
+                        onClick={(e) => {
+                          setCallsOrPuts("put");
+                          setChosenOptionChain(optionChain.puts);
+                        }}
                         variant={"outlined"}
                         className={
-                          callsOrPuts === "puts"
+                          callsOrPuts === "put"
                             ? classes.selected
                             : classes.unSelected
                         }
