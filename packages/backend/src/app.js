@@ -24,36 +24,41 @@ app.get("/login", function (req, res) {
 });
 
 app.get("/stock", async function (req, res) {
-  const YAHOO_API_PRICE_URL = 'https://query2.finance.yahoo.com/v8/finance/chart/';
+  const YAHOO_API_PRICE_URL =
+    "https://query2.finance.yahoo.com/v8/finance/chart/";
   let ticker = req.query.ticker;
-  axios.get(YAHOO_API_PRICE_URL + ticker)
-    .then(response => {
+  axios
+    .get(YAHOO_API_PRICE_URL + ticker)
+    .then((response) => {
       res.status(200);
       res.send(response.data);
     })
-    .catch(err => {
-      console.log('There was an error: ', err);
-      return {'err': err}
+    .catch((err) => {
+      console.log("There was an error: ", err);
+      return { err: err };
     });
 });
 
 app.get("/option", async function (req, res) {
-  const YAHOO_API_OPTIONS_URL = 'https://query2.finance.yahoo.com/v7/finance/options/';
+  const YAHOO_API_OPTIONS_URL =
+    "https://query2.finance.yahoo.com/v7/finance/options/";
   let ticker = req.query.ticker;
-  axios.get(YAHOO_API_OPTIONS_URL + ticker)
-    .then(response => {
+  let expiration = req.query.exp ? "?date=" + req.query.exp : "";
+  const fullUrl = axios
+    .get(YAHOO_API_OPTIONS_URL + ticker + expiration)
+    .then((response) => {
       res.status(200);
       res.send(response.data);
     })
-    .catch(err => {
-      console.log('There was an error: ', err);
-      return {'err': err}
+    .catch((err) => {
+      console.log("There was an error: ", err);
+      return { err: err };
     });
 });
 
 app.get("/test", async function (req, res) {
   res.status(200);
-  res.send('This is a test');
+  res.send("This is a test");
 });
 
 // All other routes are authenticated & served from static files

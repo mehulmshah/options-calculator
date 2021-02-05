@@ -10,8 +10,10 @@
     "@testing-library/react": "^11.1.0",
     "@testing-library/user-event": "^12.1.10",
     "axios": "^0.21.1",
+    "black-scholes": "^1.1.0",
     "concurrently": "^5.3.0",
     "formik": "^2.2.6",
+    "greeks": "^1.0.0",
     "moment": "^2.29.1",
     "notistack": "^1.0.3",
     "prettier": "^2.2.1",
@@ -22,6 +24,7 @@
     "react-router-dom": "^5.2.0",
     "react-scripts": "4.0.1",
     "react-window": "^1.8.6",
+    "recharts": "^2.0.4",
     "web-vitals": "^0.2.4",
     "yup": "^0.32.8"
   },
