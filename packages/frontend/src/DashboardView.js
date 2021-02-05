@@ -21,16 +21,10 @@ import {
   Grid,
   InputLabel,
   makeStyles,
+  withStyles,
   MenuItem,
-  Paper,
   Select,
   Slider,
-  Table,
-  TableBody,
-  TableContainer,
-  TableCell,
-  TableHead,
-  TableRow,
   TextField,
   Theme,
   Typography,
@@ -42,14 +36,8 @@ import moment from "moment";
 import axios from "axios";
 import blackScholes from "black-scholes";
 import greeks from "greeks";
-import {
-  LineChart,
-  Line,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  Tooltip,
-} from "recharts";
+import { LineChart, Line, XAxis, YAxis, Tooltip } from "recharts";
+import OptionTable from "./OptionTable";
 
 const GainColor = "#00C805";
 const LossColor = "#FF5000";
@@ -106,23 +94,65 @@ const useStyles = makeStyles((theme: Theme) => ({
       backgroundColor: ({ gainOrLoss }) => gainOrLoss + "4D",
     },
   },
-  tableRowLightMode: {
-    "&.Mui-selected, &.Mui-selected:hover": {
-      backgroundColor: ({ gainOrLoss }) => gainOrLoss + "1A",
-      color: "white",
-    },
+  subheader: {
+    marginLeft: theme.spacing(1),
+    fontSize: 28,
   },
-  table: {
-    width: "100%",
-    maxHeight: 400,
+  halfWidth: {
+    marginLeft: theme.spacing(1),
+    width: "50%",
   },
-  test: {
-    backgroundColor: ({ gainOrLoss }) => gainOrLoss,
-    "&:hover": {
-      backgroundColor: ({ gainOrLoss }) => gainOrLoss,
-    },
+  centered: {
+    textAlign: "center",
+    margin: "auto",
   },
 }));
+
+const IOSSlider = withStyles((theme: Theme) => ({
+  root: {
+    color: "#3880ff",
+    height: 2,
+    padding: "15px 0",
+  },
+  thumb: {
+    height: 28,
+    width: 28,
+    backgroundColor: "#fff",
+    marginTop: -14,
+    marginLeft: -14,
+    "&:focus, &:hover, &$active": {
+      boxShadow:
+        "0 3px 1px rgba(0,0,0,0.1),0 4px 8px rgba(0,0,0,0.3),0 0 0 1px rgba(0,0,0,0.02)",
+    },
+  },
+  active: {},
+  valueLabel: {
+    left: "calc(-50% + 12px)",
+    top: -22,
+    "& *": {
+      background: "transparent",
+      color: theme.palette.type === "light" ? "#000" : "#fff",
+    },
+  },
+  track: {
+    height: 2,
+  },
+  rail: {
+    height: 2,
+    opacity: 0.5,
+    backgroundColor: "#bfbfbf",
+  },
+  mark: {
+    backgroundColor: "#bfbfbf",
+    height: 8,
+    width: 1,
+    marginTop: -3,
+  },
+  markActive: {
+    opacity: 1,
+    backgroundColor: "currentColor",
+  },
+}))(Slider);
 
 const STATUS_OK = 200;
 
@@ -145,7 +175,7 @@ function DashboardView() {
   const [callsOrPuts, setCallsOrPuts] = React.useState("call");
   const [selectedOption, setSelectedOption] = React.useState(0);
   const [gainOrLoss, setGainOrLoss] = React.useState(GainColor);
-
+  const [chartOptionPrice, setChartOptionPrice] = React.useState(0);
   const classes = useStyles({ gainOrLoss });
 
   const handleSubmitContact = () => {
@@ -227,42 +257,6 @@ function DashboardView() {
     }
   }, [expiration, getOptionChain]);
 
-  const displayCallOptions = () => {
-    return chosenOptionChain
-      .filter((call) => call)
-      .map((call) => {
-        let sign = call.percentChange > 0 ? "+" : "-";
-        return (
-          <TableRow
-            item
-            key={call.contractSymbol}
-            selected={call.strike === selectedOption}
-            onClick={() => setSelectedOption(call.strike)}
-            className={classes.tableRowLightMode}
-          >
-            <TableCell className={classes.bold}>${call.strike}</TableCell>
-            <TableCell>${(call.strike + call.lastPrice).toFixed(2)}</TableCell>
-            <TableCell>
-              {sign + Math.abs(call.percentChange).toFixed(2)}%
-            </TableCell>
-            <TableCell>
-              {sign}${Math.abs(call.change).toFixed(2)}
-            </TableCell>
-            <TableCell>
-              <Button
-                className={classes.test}
-                variant={
-                  call.strike === selectedOption ? "contained" : "outlined"
-                }
-              >
-                ${call.lastPrice.toFixed(2)}
-              </Button>
-            </TableCell>
-          </TableRow>
-        );
-      });
-  };
-
   const testBS = () => {
     let option = chosenOptionChain.find(
       (call) => call.strike === selectedOption
@@ -311,6 +305,16 @@ function DashboardView() {
     );
   };
 
+  const renderTooltip = (e) => {
+    if (e.payload && e.payload.length > 0) {
+      setChartOptionPrice(e.payload[0].payload.price.toFixed(2));
+      return (
+        <div className={classes.centered}>{e.payload[0].payload.date}</div>
+      );
+    }
+    return <div></div>;
+  };
+
   const generateChart = () => {
     let today = moment();
     let days = [];
@@ -341,17 +345,26 @@ function DashboardView() {
         0.08,
         callsOrPuts
       );
-      tempObj.date = d;
+      tempObj.date = moment(d).format("MMM D, YYYY").toUpperCase();
       tempObj.price = output;
       data.push(tempObj);
     });
     return (
-      <LineChart width={600} height={500} data={data}>
-        <Line type="monotone" dataKey="price" stroke="#8884d8" />
-        <CartesianGrid stroke="#ccc" strokeDasharray="5 5" />
-        <XAxis dataKey="date" />
-        <YAxis dataKey="price" />
-        <Tooltip />
+      <LineChart
+        width={650}
+        height={250}
+        data={data}
+        margin={{ top: 35, bottom: 35, left: 10, right: 20 }}
+      >
+        >
+        <Line type="monotone" dataKey="price" stroke={gainOrLoss} dot={false} />
+        <XAxis dataKey="date" hide={true} domain={["auto", "auto"]} />
+        <YAxis dataKey="price" hide={true} domain={["dataMin", "dataMax"]} />
+        <Tooltip
+          content={renderTooltip}
+          position={{ y: 0 }}
+          wrapperStyle={{ width: 100, margin: "auto" }}
+        />
       </LineChart>
     );
   };
@@ -373,10 +386,10 @@ function DashboardView() {
                 <Grid container spacing={2} alignItems="center">
                   <Grid item xs={12}>
                     <Typography className={classes.dialog}>
-                      {symbol.toUpperCase() + " "}
                       <span className={classes.ticker}>
-                        ${symbolPrice.toFixed(2)}
+                        {symbol.toUpperCase() + " "}
                       </span>
+                      ${symbolPrice.toFixed(2)}
                     </Typography>
                   </Grid>
                   <Grid item>
@@ -384,7 +397,7 @@ function DashboardView() {
                       <Button
                         color="inherit"
                         onClick={(e) => setBuyOrSell("buy")}
-                        variant={"outlined"}
+                        variant="none"
                         className={
                           buyOrSell === "buy"
                             ? classes.selected
@@ -396,7 +409,7 @@ function DashboardView() {
                       <Button
                         color="inherit"
                         onClick={(e) => setBuyOrSell("sell")}
-                        variant={"outlined"}
+                        variant="none"
                         className={
                           buyOrSell === "sell"
                             ? classes.selected
@@ -415,7 +428,7 @@ function DashboardView() {
                           setCallsOrPuts("call");
                           setChosenOptionChain(optionChain.calls);
                         }}
-                        variant={"outlined"}
+                        variant="none"
                         className={
                           callsOrPuts === "call"
                             ? classes.selected
@@ -430,7 +443,7 @@ function DashboardView() {
                           setCallsOrPuts("put");
                           setChosenOptionChain(optionChain.puts);
                         }}
-                        variant={"outlined"}
+                        variant="none"
                         className={
                           callsOrPuts === "put"
                             ? classes.selected
@@ -472,34 +485,49 @@ function DashboardView() {
                     </FormControl>
                   </Grid>
                   <Grid item xs={12}>
-                    <TableContainer component={Paper} className={classes.table}>
-                      <Table stickyHeader>
-                        <TableHead>
-                          <TableRow>
-                            <TableCell>Strike Price</TableCell>
-                            <TableCell>Break Even</TableCell>
-                            <TableCell>% Change</TableCell>
-                            <TableCell>Change</TableCell>
-                            <TableCell>Price</TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>{displayCallOptions()}</TableBody>
-                      </Table>
-                    </TableContainer>
+                    <OptionTable
+                      chosenOptionChain={chosenOptionChain}
+                      gainOrLoss={gainOrLoss}
+                      selectedOption={selectedOption}
+                      isSelected={(call) => {
+                        setSelectedOption(call.strike);
+                        setChartOptionPrice(call.lastPrice);
+                      }}
+                    />
                   </Grid>
                   {selectedOption > 0 && (
-                    <>
-                      <Slider
-                        step={0.5}
-                        min={0}
-                        max={300}
-                        value={symbolPrice}
-                        onChange={(e, nV) => setSymbolPrice(nV)}
-                      />
-                      <Grid item xs={12}>
-                        {generateChart()}
+                    <Grid container direction="column">
+                      <Grid item>
+                        <Typography className={classes.dialog}>
+                          <span className={classes.ticker}>
+                            {symbol.toUpperCase() + " "}
+                          </span>
+                          ${symbolPrice.toFixed(2)}
+                        </Typography>
                       </Grid>
-                    </>
+                      <Grid item className={classes.halfWidth}>
+                        <IOSSlider
+                          step={0.5}
+                          min={0}
+                          max={300}
+                          value={symbolPrice}
+                          onChange={(e, nV) => setSymbolPrice(nV)}
+                          valueLabelDisplay="on"
+                        />
+                      </Grid>
+                      <Grid item>
+                        <Typography className={classes.subheader}>
+                          {symbol.toUpperCase() + " "} ${selectedOption}{" "}
+                          {callsOrPuts.toUpperCase()}
+                        </Typography>
+                      </Grid>
+                      <Grid item>
+                        <Typography className={classes.subheader}>
+                          ${chartOptionPrice}
+                        </Typography>
+                      </Grid>
+                      <Grid item>{generateChart()}</Grid>
+                    </Grid>
                   )}
                 </Grid>
               ) : (

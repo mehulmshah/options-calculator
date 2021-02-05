@@ -10475,6 +10475,11 @@ react-lifecycles-compat@^3.0.4:
   resolved "https://registry.yarnpkg.com/react-lifecycles-compat/-/react-lifecycles-compat-3.0.4.tgz#4f1a273afdfc8f3488a8c516bfda78f872352362"
   integrity sha512-fBASbA6LnOU9dOU2eW7aQ8xmYBSXUIWr+UmF9b1efZBazGNO+rcXT/icdKnYm2pTwcRylVUYwW7H1PHfLekVzA==
 
+react-native-number-ticker@^0.1.5:
+  version "0.1.5"
+  resolved "https://registry.yarnpkg.com/react-native-number-ticker/-/react-native-number-ticker-0.1.5.tgz#af7de09a2bc8c8bb7a2eadaff60aeb56ff0b4b0b"
+  integrity sha512-HHk9sV+vt4w1f9lt9s60GsFYWWCEFaK+PgF6KaXnaUD+FftAx/JJjey805e8CPkDJrQY57ca22fIb7pmPg3CXA==
+
 react-refresh@^0.8.3:
   version "0.8.3"
   resolved "https://registry.yarnpkg.com/react-refresh/-/react-refresh-0.8.3.tgz#721d4657672d400c5e3c75d063c4a85fb2d5d68f"
