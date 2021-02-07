@@ -8,9 +8,7 @@
     "start:dev": "concurrently \"yarn workspace backend start:dev\" \"PORT=3001 yarn workspace frontend start\"",
     "start": "yarn build && yarn workspace backend run start",
     "build": "yarn workspaces run build && cp -r packages/frontend/build/ packages/backend/dist/public/",
-    "test": "yarn workspaces run test",
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d build"
+    "test": "yarn workspaces run test"
   },
   "devDependencies": {
     "concurrently": "^5.2.0",
@@ -30,6 +28,5 @@
   },
   "dependencies": {
     "atob": "^2.1.2"
-  },
-  "homepage": "https://mehulmshah.github.io/options-calculator"
+  }
 }
