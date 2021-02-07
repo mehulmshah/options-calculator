@@ -36,7 +36,14 @@ import moment from "moment";
 import axios from "axios";
 import blackScholes from "black-scholes";
 import greeks from "greeks";
-import { LineChart, Line, XAxis, YAxis, Tooltip } from "recharts";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianAxis,
+} from "recharts";
 import OptionTable from "./OptionTable";
 
 const GainColor = "#00C805";
@@ -164,7 +171,7 @@ function DashboardView() {
   const [email, setEmail] = React.useState("");
   const [expiration, setExpiration] = React.useState("");
   const [expirationDates, setExpirationDates] = React.useState([0]);
-  const [symbol, setSymbol] = React.useState("AAPL");
+  const [symbol, setSymbol] = React.useState("AXON");
   const [symbolPrice, setSymbolPrice] = React.useState(0);
   const [optionChain, setOptionChain] = React.useState({
     calls: [0],
@@ -356,10 +363,17 @@ function DashboardView() {
         data={data}
         margin={{ top: 35, bottom: 35, left: 10, right: 20 }}
       >
-        >
-        <Line type="monotone" dataKey="price" stroke={gainOrLoss} dot={false} />
+        <Line
+          type="linear"
+          dataKey="price"
+          stroke={gainOrLoss}
+          dot={false}
+          activeDot={{ strokeWidth: 1, stroke: "black", r: 4 }}
+          strokeWidth={3}
+        />
         <XAxis dataKey="date" hide={true} domain={["auto", "auto"]} />
         <YAxis dataKey="price" hide={true} domain={["dataMin", "dataMax"]} />
+
         <Tooltip
           content={renderTooltip}
           position={{ y: 0 }}
@@ -385,7 +399,7 @@ function DashboardView() {
               {symbolPrice !== 0 && chosenOptionChain.length > 0 ? (
                 <Grid container spacing={2} alignItems="center">
                   <Grid item xs={12}>
-                    <Typography className={classes.dialog}>
+                    <Typography>
                       <span className={classes.ticker}>
                         {symbol.toUpperCase() + " "}
                       </span>
@@ -547,15 +561,26 @@ function DashboardView() {
               )}
             </CardContent>
             <CardActions>
-              <Button
-                variant="contained"
-                color="primary"
-                className={classes.leftSide}
-                onClick={handleSymbolLookup}
-                disabled={symbol === ""}
-              >
-                Show Options
-              </Button>
+              {symbolPrice ? (
+                <Button
+                  variant="contained"
+                  color="primary"
+                  className={classes.leftSide}
+                  onClick={handleSymbolLookup}
+                >
+                  Choose New Ticker
+                </Button>
+              ) : (
+                <Button
+                  variant="contained"
+                  color="primary"
+                  className={classes.leftSide}
+                  onClick={handleSymbolLookup}
+                  disabled={symbol === ""}
+                >
+                  Show Options
+                </Button>
+              )}
             </CardActions>
           </Card>
         </Grid>
