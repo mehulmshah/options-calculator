@@ -60,16 +60,20 @@ function OptionTable({
   isSelected,
 }: OptionTableProps) {
   const classes = useStyles({ gainOrLoss });
+  const tableRef = React.createRef();
+  const selectedRef = React.createRef();
 
   const displayCallOptions = () => {
     return chosenOptionChain
       .filter((call) => call)
       .map((call) => {
+        let selected = call.strike === selectedOption;
         let sign = call.percentChange > 0 ? "+" : "-";
         return (
           <TableRow
             key={call.contractSymbol}
-            selected={call.strike === selectedOption}
+            selected={selected}
+            ref={selected ? selectedRef : undefined}
             onClick={() => isSelected(call)}
             className={classes.tableRowLightMode}
           >
@@ -96,8 +100,24 @@ function OptionTable({
       });
   };
 
+  React.useEffect(() => {
+    if (tableRef.current && selectedRef.current) {
+      if (tableRef.current.scrollTop != selectedRef.current.offsetTop) {
+        let containerHeight = tableRef.current.offsetHeight;
+        let targetOffset = selectedRef.current.offsetTop;
+        let targetHeight = selectedRef.current.offsetHeight;
+        let top = targetOffset - targetHeight;
+
+        tableRef.current.scroll({
+          top,
+          behavior: "smooth",
+        });
+      }
+    }
+  }, [selectedRef, tableRef]);
+
   return (
-    <TableContainer component={Paper} className={classes.table}>
+    <TableContainer component={Paper} className={classes.table} ref={tableRef}>
       <Table stickyHeader>
         <TableHead>
           <TableRow>
