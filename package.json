@@ -1,32 +1,32 @@
 {
   "name": "options-calculator",
   "private": true,
-  "workspaces": [
-    "packages/*"
-  ],
   "scripts": {
-    "start:dev": "concurrently \"yarn workspace backend start:dev\" \"PORT=3001 yarn workspace frontend start\"",
-    "start": "yarn build && yarn workspace backend run start",
-    "build": "yarn workspaces run build && cp -r packages/frontend/build/ packages/backend/dist/public/",
+    "start:dev": "concurrently \"nodemon\" \"PORT=3000 yarn frontend start\"",
+    "start": "node index.js",
+    "heroku-postbuild": "cd frontend && yarn && yarn run build",
     "test": "yarn workspaces run test"
   },
+  "nodemonConfig": {
+    "watch": [
+      "src"
+    ],
+    "ext": "js",
+    "exec": "yarn start"
+  },
   "devDependencies": {
-    "concurrently": "^5.2.0",
-    "husky": "^4.2.5",
-    "lint-staged": "^10.2.2",
-    "prettier": "^2.0.5"
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged"
-    }
-  },
-  "lint-staged": {
-    "**/*.{js,jsx,,json,css,scss,md}": [
-      "prettier --write"
-    ]
+    "concurrently": "^5.2.0"
   },
   "dependencies": {
-    "atob": "^2.1.2"
+    "axios": "^0.21.1",
+    "express": "~4.16.1",
+    "helmet": "^3.22.0",
+    "http-errors": "~1.6.3",
+    "http-proxy-middleware": "^1.0.4",
+    "http-status-codes": "^1.4.0",
+    "jade": "~1.11.0",
+    "morgan": "~1.9.1",
+    "nodemon": "^2.0.7",
+    "webpack": "^5.20.1"
   }
 }

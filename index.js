@@ -11,6 +11,9 @@ var path = require("path");
 // Declare Express app
 const app = express();
 
+// Serve static files from the React app
+app.use(express.static(path.join(__dirname, 'client/build')));
+
 app.use(express.json());
 
 // Configure helmet
@@ -63,8 +66,8 @@ app.get("/test", async function (req, res) {
 
 // All other routes are authenticated & served from static files
 if (process.env.NODE_ENV === "production") {
-  app.get("*", (req, res) => {
-    res.sendFile(path.join(__dirname, "public", "index.html"));
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname+'/client/build/index.html'));
   });
 } else {
   app.get(
@@ -76,4 +79,7 @@ if (process.env.NODE_ENV === "production") {
   );
 }
 
-module.exports = app;
+const port = process.env.PORT || 5000;
+app.listen(port);
+
+console.log(`Options Calculator listening on ${port}`);
