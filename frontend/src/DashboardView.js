@@ -171,7 +171,7 @@ function DashboardView() {
   const [email, setEmail] = React.useState("");
   const [expiration, setExpiration] = React.useState("");
   const [expirationDates, setExpirationDates] = React.useState([0]);
-  const [symbol, setSymbol] = React.useState("AXON");
+  const [symbol, setSymbol] = React.useState("");
   const [symbolPrice, setSymbolPrice] = React.useState(0);
   const [adjustableSymbolPrice, setAdjustableSymbolPrice] = React.useState(0);
   const [optionChain, setOptionChain] = React.useState({
@@ -248,6 +248,7 @@ function DashboardView() {
                         Math.abs(prev.strike - currStockPrice) ? curr : prev);
               });
               setSelectedOption(closest.strike);
+              setChartOptionPrice(closest.lastPrice.toFixed(2));
               setExpiration(expirationDates[0]);
             }
             setExpirationDates(expirationDates);
@@ -562,6 +563,11 @@ function DashboardView() {
                       helperText="Enter a stock ticker"
                       value={symbol}
                       onChange={(e) => setSymbol(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === "Enter") {
+                          handleSymbolLookup();
+                        }
+                      }}
                       fullWidth={true}
                     />
                   </Grid>
