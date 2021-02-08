@@ -194,6 +194,7 @@ function DashboardView() {
   };
 
   const handleSymbolLookup = async () => {
+    console.log(`User Looked up ${symbol}`);
     enqueueSnackbar(`Looking up ${symbol}`, { variant: "info" });
     await getStockData();
   };

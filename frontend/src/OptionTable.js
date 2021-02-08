@@ -74,7 +74,10 @@ function OptionTable({
             key={call.contractSymbol}
             selected={selected}
             ref={selected ? selectedRef : undefined}
-            onClick={() => isSelected(call)}
+            onClick={() => {
+              console.log(`User Click on Option ${JSON.stringify(call)}`);
+              isSelected(call);
+            }
             className={classes.tableRowLightMode}
           >
             <TableCell className={classes.bold}>${call.strike}</TableCell>
