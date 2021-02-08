@@ -62,7 +62,7 @@ const useStyles = makeStyles((theme: Theme) => ({
     padding: theme.spacing(0.5),
   },
   card: {
-    width: "80vw",
+    width: "90vw",
     cursor: "pointer",
     margin: theme.spacing(1),
   },
@@ -184,7 +184,9 @@ function DashboardView() {
   const [selectedOption, setSelectedOption] = React.useState(0);
   const [gainOrLoss, setGainOrLoss] = React.useState(GainColor);
   const [chartOptionPrice, setChartOptionPrice] = React.useState(0);
+  const chartRef = React.useRef();
   const classes = useStyles({ gainOrLoss });
+
 
   const handleSubmitContact = () => {
     enqueueSnackbar("Request successfully submitted", { variant: "success" });
@@ -193,12 +195,13 @@ function DashboardView() {
 
   const handleSymbolLookup = async () => {
     enqueueSnackbar(`Looking up ${symbol}`, { variant: "info" });
-    getStockPrice();
-    getOptionChain();
+    await getStockData();
   };
 
-  const getStockPrice = async () => {
-    axios
+  const getStockData = React.useCallback(
+    async (exp = "") => {
+    let currStockPrice = 0;
+    await axios
       .get("/stock?ticker=" + symbol.toLowerCase())
       .then((response) => {
         if (response.status === STATUS_OK) {
@@ -208,6 +211,7 @@ function DashboardView() {
           let currPrice = response.data.chart.result[0].meta.regularMarketPrice;
           let prevPrice = response.data.chart.result[0].meta.chartPreviousClose;
           setSymbolPrice(currPrice);
+          currStockPrice = currPrice;
           setAdjustableSymbolPrice(currPrice);
           setGainOrLoss(currPrice - prevPrice > 0 ? GainColor : LossColor);
         }
@@ -218,10 +222,7 @@ function DashboardView() {
           variant: "error",
         });
       });
-  };
 
-  const getOptionChain = React.useCallback(
-    (exp = "") => {
       let endpoint = "/option?ticker=" + symbol.toLowerCase();
       if (exp !== "") {
         endpoint += "&exp=" + exp;
@@ -242,6 +243,11 @@ function DashboardView() {
             });
             setChosenOptionChain(optionsJson.calls);
             if (exp === "") {
+              var closest = optionsJson.calls.reduce(function(prev, curr) {
+                return (Math.abs(curr.strike - currStockPrice) <
+                        Math.abs(prev.strike - currStockPrice) ? curr : prev);
+              });
+              setSelectedOption(closest.strike);
               setExpiration(expirationDates[0]);
             }
             setExpirationDates(expirationDates);
@@ -256,15 +262,13 @@ function DashboardView() {
             }
           );
         });
-    },
-    [enqueueSnackbar, symbol]
-  );
+    },[enqueueSnackbar, symbol]);
 
   React.useEffect(() => {
     if (expiration !== "") {
-      getOptionChain(expiration);
+      getStockData(expiration);
     }
-  }, [expiration, getOptionChain]);
+  }, [expiration, getStockData]);
 
   const testBS = () => {
     let option = chosenOptionChain.find(
@@ -354,12 +358,14 @@ function DashboardView() {
         0.08,
         callsOrPuts
       );
-      tempObj.date = moment(d).format("MMM D, YYYY").toUpperCase();
+      tempObj.date = moment(d).format("MMM D, YY").toUpperCase();
       tempObj.price = output;
       data.push(tempObj);
     });
+
     return (
       <LineChart
+        ref={chartRef}
         width={650}
         height={250}
         data={data}
@@ -373,7 +379,7 @@ function DashboardView() {
           activeDot={{ strokeWidth: 1, stroke: "black", r: 4 }}
           strokeWidth={3}
         />
-        <XAxis dataKey="date" hide={true} domain={["auto", "auto"]} />
+        <XAxis dataKey="date" domain={["auto", "auto"]} />
         <YAxis dataKey="price" hide={true} domain={["dataMin", "dataMax"]} />
 
         <Tooltip
@@ -585,6 +591,11 @@ function DashboardView() {
               )}
             </CardActions>
           </Card>
+        </Grid>
+        <Grid item>
+          <Typography className={classes.card}>
+            Chance of profit is an estimate based on the Black-Scholes Model, and is for informational purposes only. Numerous factors that are not reducible to a model determine the actual chance of profit for a particular option contract or strategy.
+          </Typography>
         </Grid>
       </Grid>
       <Dialog
