@@ -2,7 +2,7 @@
   "name": "options-calculator",
   "private": true,
   "scripts": {
-    "start:dev": "concurrently \"nodemon\" \"PORT=3000 yarn frontend start\"",
+    "start:dev": "concurrently \"nodemon\" \"cd frontend && PORT=5000 yarn frontend start\"",
     "start": "node index.js",
     "heroku-postbuild": "cd frontend && yarn && yarn run build",
     "test": "yarn workspaces run test"

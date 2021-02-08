@@ -173,6 +173,7 @@ function DashboardView() {
   const [expirationDates, setExpirationDates] = React.useState([0]);
   const [symbol, setSymbol] = React.useState("AXON");
   const [symbolPrice, setSymbolPrice] = React.useState(0);
+  const [adjustableSymbolPrice, setAdjustableSymbolPrice] = React.useState(0);
   const [optionChain, setOptionChain] = React.useState({
     calls: [0],
     puts: [0],
@@ -207,6 +208,7 @@ function DashboardView() {
           let currPrice = response.data.chart.result[0].meta.regularMarketPrice;
           let prevPrice = response.data.chart.result[0].meta.chartPreviousClose;
           setSymbolPrice(currPrice);
+          setAdjustableSymbolPrice(currPrice);
           setGainOrLoss(currPrice - prevPrice > 0 ? GainColor : LossColor);
         }
       })
@@ -345,7 +347,7 @@ function DashboardView() {
         (Math.abs(moment(d).diff(moment.unix(expiration).utc(), "days")) + 1) /
         365;
       let output = blackScholes.blackScholes(
-        symbolPrice,
+        adjustableSymbolPrice,
         option.strike,
         timeDiffInYears,
         option.impliedVolatility,
@@ -505,7 +507,7 @@ function DashboardView() {
                       selectedOption={selectedOption}
                       isSelected={(call) => {
                         setSelectedOption(call.strike);
-                        setChartOptionPrice(call.lastPrice);
+                        setChartOptionPrice(call.lastPrice.toFixed(2));
                       }}
                     />
                   </Grid>
@@ -516,16 +518,16 @@ function DashboardView() {
                           <span className={classes.ticker}>
                             {symbol.toUpperCase() + " "}
                           </span>
-                          ${symbolPrice.toFixed(2)}
+                          ${adjustableSymbolPrice.toFixed(2)}
                         </Typography>
                       </Grid>
                       <Grid item className={classes.halfWidth}>
                         <IOSSlider
                           step={0.5}
                           min={0}
-                          max={300}
-                          value={symbolPrice}
-                          onChange={(e, nV) => setSymbolPrice(nV)}
+                          max={Math.round(symbolPrice*2)}
+                          value={adjustableSymbolPrice}
+                          onChange={(e, nV) => setAdjustableSymbolPrice(nV)}
                           valueLabelDisplay="on"
                         />
                       </Grid>

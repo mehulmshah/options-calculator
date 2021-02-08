@@ -73,7 +73,7 @@ if (process.env.NODE_ENV === "production") {
   app.get(
     "*",
     require("http-proxy-middleware").createProxyMiddleware({
-      target: "http://localhost:3001/",
+      target: "http://localhost:5001/",
       changeOrigin: true,
     })
   );
