@@ -12,7 +12,7 @@ var path = require("path");
 const app = express();
 
 // Serve static files from the React app
-app.use(express.static(path.join(__dirname, 'client/build')));
+app.use(express.static(path.join(__dirname, 'frontend/build')));
 
 app.use(express.json());
 
@@ -67,7 +67,7 @@ app.get("/test", async function (req, res) {
 // All other routes are authenticated & served from static files
 if (process.env.NODE_ENV === "production") {
   app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname+'/client/build/index.html'));
+    res.sendFile(path.join(__dirname+'/frontend/build/index.html'));
   });
 } else {
   app.get(
