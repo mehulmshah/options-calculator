@@ -162,6 +162,7 @@ const IOSSlider = withStyles((theme: Theme) => ({
 }))(Slider);
 
 const STATUS_OK = 200;
+const INFLATION_RATE = 0.014;
 
 function DashboardView() {
   const { enqueueSnackbar } = useSnackbar();
@@ -283,7 +284,7 @@ function DashboardView() {
       option.strike,
       timeDiff,
       option.impliedVolatility,
-      0.08,
+      0.056,
       callsOrPuts
     );
 
