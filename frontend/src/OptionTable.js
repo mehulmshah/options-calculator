@@ -36,7 +36,7 @@ const useStyles = makeStyles((theme: Theme) => ({
   },
   table: {
     width: "100%",
-    maxHeight: 400,
+    maxHeight: 200,
   },
   test: {
     backgroundColor: ({ gainOrLoss }) => gainOrLoss,
@@ -105,7 +105,7 @@ function OptionTable({
 
   React.useEffect(() => {
     if (tableRef.current && selectedRef.current) {
-      if (tableRef.current.scrollTop != selectedRef.current.offsetTop) {
+      if (tableRef.current.scrollTop !== selectedRef.current.offsetTop) {
         let containerHeight = tableRef.current.offsetHeight;
         let targetOffset = selectedRef.current.offsetTop;
         let targetHeight = selectedRef.current.offsetHeight;

@@ -10,13 +10,8 @@ import {
   Button,
   ButtonGroup,
   Card,
-  CardActions,
   CardContent,
   CardHeader,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   FormControl,
   Grid,
   InputLabel,
@@ -29,21 +24,16 @@ import {
   Theme,
   Typography,
 } from "@material-ui/core";
+import CreateIcon from "@material-ui/icons/Create";
+import CreateIconOutlined from "@material-ui/icons/CreateOutlined";
 import LibraryAddCheckRoundedIcon from "@material-ui/icons/LibraryAddCheckRounded";
-import SendIcon from "@material-ui/icons/Send";
 import { useSnackbar } from "notistack";
 import moment from "moment";
 import axios from "axios";
 import blackScholes from "black-scholes";
 import greeks from "greeks";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianAxis,
-} from "recharts";
+import { ResponsiveLine } from '@nivo/line';
+import { linearGradientDef } from '@nivo/core';
 import OptionTable from "./OptionTable";
 
 const GainColor = "#00C805";
@@ -113,6 +103,10 @@ const useStyles = makeStyles((theme: Theme) => ({
     textAlign: "center",
     margin: "auto",
   },
+  testContainer: {
+    width: 800,
+    height: 600,
+  },
 }));
 
 const IOSSlider = withStyles((theme: Theme) => ({
@@ -167,230 +161,203 @@ const INFLATION_RATE = 0.014;
 function DashboardView() {
   const { enqueueSnackbar } = useSnackbar();
 
-  const [contactUs, setContactUs] = React.useState(false);
-  const [name, setName] = React.useState("");
-  const [email, setEmail] = React.useState("");
   const [expiration, setExpiration] = React.useState("");
   const [expirationDates, setExpirationDates] = React.useState([0]);
+  const [symbolSearch, setSymbolSearch] = React.useState("");
   const [symbol, setSymbol] = React.useState("");
   const [symbolPrice, setSymbolPrice] = React.useState(0);
   const [adjustableSymbolPrice, setAdjustableSymbolPrice] = React.useState(0);
   const [optionChain, setOptionChain] = React.useState({
-    calls: [0],
-    puts: [0],
+    calls: [0], puts: [0],
   });
   const [chosenOptionChain, setChosenOptionChain] = React.useState([0]);
-  const [buyOrSell, setBuyOrSell] = React.useState("buy");
   const [callsOrPuts, setCallsOrPuts] = React.useState("call");
   const [selectedOption, setSelectedOption] = React.useState(0);
   const [gainOrLoss, setGainOrLoss] = React.useState(GainColor);
-  const [chartOptionPrice, setChartOptionPrice] = React.useState(0);
-  const chartRef = React.useRef();
+  const [disableSearch, setDisableSearch] = React.useState(true);
+  const [stockRange, setStockRange] = React.useState(9);
   const classes = useStyles({ gainOrLoss });
 
+  const handleChangeExpiration = (newExpiration) => {
+    setExpiration(newExpiration);
+    getStockData(newExpiration);
+  }
 
-  const handleSubmitContact = () => {
-    enqueueSnackbar("Request successfully submitted", { variant: "success" });
-    return;
+  const handleSymbolLookup = () => {
+    enqueueSnackbar(`Looking up ${symbolSearch.toUpperCase()}`, { variant: "info" });
+    getStockData();
   };
 
-  const handleSymbolLookup = async () => {
-    console.log(`User Looked up ${symbol}`);
-    enqueueSnackbar(`Looking up ${symbol}`, { variant: "info" });
-    await getStockData();
-  };
-
-  const getStockData = React.useCallback(
-    async (exp = "") => {
-    let currStockPrice = 0;
-    await axios
-      .get("/stock?ticker=" + symbol.toLowerCase())
+  const getStockData = (exp = "") => {
+    axios
+      .get("/stock?ticker=" + symbolSearch.toLowerCase())
       .then((response) => {
         if (response.status === STATUS_OK) {
-          enqueueSnackbar("Successfully Loaded Stock Price", {
-            variant: "success",
-          });
+          setSymbol(symbolSearch.toUpperCase());
+          setSymbolSearch(symbolSearch.toUpperCase());
+          setDisableSearch(true);
           let currPrice = response.data.chart.result[0].meta.regularMarketPrice;
           let prevPrice = response.data.chart.result[0].meta.chartPreviousClose;
           setSymbolPrice(currPrice);
-          currStockPrice = currPrice;
           setAdjustableSymbolPrice(currPrice);
           setGainOrLoss(currPrice - prevPrice > 0 ? GainColor : LossColor);
         }
       })
       .catch((error) => {
         console.log(error);
-        enqueueSnackbar(`Error searching for ${symbol.toUpperCase()} price`, {
+        enqueueSnackbar(`Error searching for ${symbolSearch.toUpperCase()} price`, {
           variant: "error",
         });
       });
 
-      let endpoint = "/option?ticker=" + symbol.toLowerCase();
-      if (exp !== "") {
-        endpoint += "&exp=" + exp;
-      }
-      axios
-        .get(endpoint)
-        .then((response) => {
-          if (response.status === STATUS_OK) {
-            enqueueSnackbar("Successfully Loaded Option Chain", {
-              variant: "success",
-            });
-            let optionsJson = response.data.optionChain.result[0].options[0];
-            let expirationDates =
-              response.data.optionChain.result[0].expirationDates;
-            setOptionChain({
-              calls: optionsJson.calls,
-              puts: optionsJson.puts,
-            });
-            setChosenOptionChain(optionsJson.calls);
-            if (exp === "") {
-              var closest = optionsJson.calls.reduce(function(prev, curr) {
-                return (Math.abs(curr.strike - currStockPrice) <
-                        Math.abs(prev.strike - currStockPrice) ? curr : prev);
-              });
-              setSelectedOption(closest.strike);
-              setChartOptionPrice(closest.lastPrice.toFixed(2));
-              setExpiration(expirationDates[0]);
-            }
-            setExpirationDates(expirationDates);
+    let endpoint = "/option?ticker=" + symbolSearch.toLowerCase();
+    if (exp !== "") {
+      endpoint += "&exp=" + exp;
+    }
+    axios
+      .get(endpoint)
+      .then((response) => {
+        if (response.status === STATUS_OK) {
+          let optionsJson = response.data.optionChain.result[0].options[0];
+          let expDates = response.data.optionChain.result[0].expirationDates;
+          setOptionChain({
+            calls: optionsJson.calls,
+            puts: optionsJson.puts,
+          });
+          setChosenOptionChain(optionsJson.calls);
+          if (exp === "") {
+            setExpiration(expDates[0]);
           }
-        })
-        .catch((error) => {
-          console.log(error);
-          enqueueSnackbar(
-            `Error searching for ${symbol.toUpperCase()} options`,
-            {
-              variant: "error",
-            }
-          );
-        });
-    },[enqueueSnackbar, symbol]);
-
-  React.useEffect(() => {
-    if (expiration !== "") {
-      getStockData(expiration);
-    }
-  }, [expiration, getStockData]);
-
-  const testBS = () => {
-    let option = chosenOptionChain.find(
-      (call) => call.strike === selectedOption
-    );
-    let timeDiff =
-      (moment().diff(moment.unix(option.expiration).utc(), "days") + 1) / 365;
-    let output = blackScholes.blackScholes(
-      symbolPrice,
-      option.strike,
-      timeDiff,
-      option.impliedVolatility,
-      0.056,
-      callsOrPuts
-    );
-
-    let delta = greeks.getDelta(
-      symbolPrice,
-      option.strike,
-      timeDiff,
-      option.impliedVolatility,
-      0.08,
-      callsOrPuts
-    );
-    let gamma = greeks.getGamma(
-      symbolPrice,
-      option.strike,
-      timeDiff,
-      option.impliedVolatility,
-      0.08
-    );
-    let theta = greeks.getTheta(
-      symbolPrice,
-      option.strike,
-      timeDiff,
-      option.impliedVolatility,
-      0.08,
-      callsOrPuts
-    );
-    return (
-      <div>
-        <div>Price: {output}</div>
-        <div>Delta: {delta}</div>
-        <div>Gamma: {gamma}</div>
-        <div>Theta: {theta}</div>
-      </div>
-    );
-  };
-
-  const renderTooltip = (e) => {
-    if (e.payload && e.payload.length > 0) {
-      setChartOptionPrice(e.payload[0].payload.price.toFixed(2));
-      return (
-        <div className={classes.centered}>{e.payload[0].payload.date}</div>
-      );
-    }
-    return <div></div>;
-  };
+          setExpirationDates(expDates);
+        }
+      })
+      .catch((error) => {
+        console.log(error);
+        enqueueSnackbar(
+          `Error searching for ${symbolSearch.toUpperCase()} options`,
+          {
+            variant: "error",
+          }
+        );
+      });
+    };
 
   const generateChart = () => {
-    let today = moment();
-    let days = [];
-    days.push(today.format());
-    let timeDiff =
-      Math.abs(moment().diff(moment.unix(expiration).utc(), "days")) + 1;
-    for (let i = 1; i < timeDiff; i++) {
-      let d = today.clone().add(i, "days");
-      days.push(d.format());
-    }
-    let option = chosenOptionChain.find(
-      (call) => call.strike === selectedOption
-    );
+    let timeDiffInYears = (
+      Math.abs(moment().diff(moment.unix(expiration).utc(), "days")) + 1) /
+      365;
+    let option = chosenOptionChain.find((call) => call.strike === selectedOption);
     if (!option) {
       return;
     }
-    let data = [];
-    days.forEach((d) => {
+    let chartPosData = [];
+    let chartNegData = [];
+    for (let i = symbolPrice*(1-stockRange/100); i < symbolPrice*(1+stockRange/100); i+= 0.1) {
       let tempObj = {};
-      let timeDiffInYears =
-        (Math.abs(moment(d).diff(moment.unix(expiration).utc(), "days")) + 1) /
-        365;
       let output = blackScholes.blackScholes(
-        adjustableSymbolPrice,
+        i,
         option.strike,
         timeDiffInYears,
         option.impliedVolatility,
-        0.08,
+        0.056,
         callsOrPuts
       );
-      tempObj.date = moment(d).format("MMM D, YY").toUpperCase();
-      tempObj.price = output;
-      data.push(tempObj);
-    });
+      tempObj.x = i;
+      tempObj.y = 100*(output - option.lastPrice);
+      if (tempObj.y >= 0) {
+        chartPosData.push(tempObj);
+      } else {
+        chartNegData.push(tempObj);
+      }
+    };
+
+    var data = [
+      {
+        id: 'positive',
+        data: chartPosData
+      },
+      {
+        id: 'negative',
+        data: chartNegData
+      }
+    ];
+
+    const theme = {
+      textColor: 'white',
+      fontSize: 14,
+      grid: {
+          line: {
+            stroke: "gray",
+            strokeWidth: 1,
+            strokeDasharray: "8 8"
+          }
+        }
+    };
 
     return (
-      <LineChart
-        ref={chartRef}
-        width={650}
-        height={250}
-        data={data}
-        margin={{ top: 35, bottom: 35, left: 10, right: 20 }}
-      >
-        <Line
-          type="linear"
-          dataKey="price"
-          stroke={gainOrLoss}
-          dot={false}
-          activeDot={{ strokeWidth: 1, stroke: "black", r: 4 }}
-          strokeWidth={3}
+      <div className={classes.testContainer}>
+        <ResponsiveLine
+          data={data}
+          defs={[
+            {
+                id: 'gradientLoss',
+                type: 'linearGradient',
+                colors: [
+                    { offset: 0, color: LossColor },
+                    { offset: 100, color: LossColor },
+                ],
+            },
+            {
+                id: 'gradientGain',
+                type: 'linearGradient',
+                colors: [
+                    { offset: 0, color: GainColor },
+                    { offset: 100, color: GainColor },
+                ],
+            },
+          ]}
+          fill={[
+            // match using function
+            { match: d => d.id === 'negative', id: 'gradientLoss' },
+            // match all, will only affect 'elm', because once a rule match,
+            // others are skipped, so now it acts as a fallback
+            { match: '*', id: 'gradientGain' },
+          ]}
+          margin={{ top: 50, right: 110, bottom: 50, left: 60 }}
+          xScale={{ type: 'linear', min: 'auto', max: 'auto'}}
+          xFormat=">-$.2f"
+          yScale={{ type: 'linear', min: 'auto', max: 'auto', reverse: false }}
+          yFormat=" >-$.2f"
+          axisTop={null}
+          axisRight={null}
+          axisBottom={{
+              orient: 'bottom',
+              tickSize: 5,
+              tickPadding: 5,
+              tickRotation: 0,
+          }}
+          axisLeft={{
+              orient: 'left',
+              tickSize: 5,
+              tickPadding: 5,
+              tickRotation: 0,
+              legend: 'profit',
+              legendOffset: -50,
+              legendPosition: 'middle'
+          }}
+          enableArea={true}
+          enablePoints={false}
+          useMesh={true}
+          theme={theme}
+          tooltip={(input) => {
+              return (
+              <div>
+                {input.point.data.xFormatted}
+              </div>
+            )}}
+          colors={d=>d.id === 'positive' ? GainColor : LossColor}
         />
-        <XAxis dataKey="date" domain={["auto", "auto"]} />
-        <YAxis dataKey="price" hide={true} domain={["dataMin", "dataMax"]} />
-
-        <Tooltip
-          content={renderTooltip}
-          position={{ y: 0 }}
-          wrapperStyle={{ width: 100, margin: "auto" }}
-        />
-      </LineChart>
+      </div>
     );
   };
 
@@ -407,8 +374,37 @@ function DashboardView() {
               subheader="Democratize Earnings"
             />
             <CardContent>
-              {symbolPrice !== 0 && chosenOptionChain.length > 0 ? (
+              {symbol !== "" ? (
                 <Grid container spacing={2} alignItems="center">
+                  {/* input new ticker plus button */}
+                  <Grid item xs={4}>
+                    <TextField
+                      className={classes.enterTicker}
+                      label="Symbol Lookup"
+                      placeholder="AAPL, GME, etc."
+                      helperText="Enter a stock ticker and press Enter"
+                      value={symbolSearch}
+                      onChange={(e) => setSymbolSearch(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === "Enter") {
+                          handleSymbolLookup();
+                        }
+                      }}
+                      fullWidth={true}
+                      disabled={disableSearch}
+                    />
+                  </Grid>
+                  <Grid item xs={1}>
+                    {disableSearch ?
+                      <CreateIcon
+                        onClick={() => setDisableSearch(false)}
+                      /> :
+                      <CreateIconOutlined
+                        onClick={() => setDisableSearch(true)}
+                      />
+                    }
+                  </Grid>
+                  {/* ticker and current price */}
                   <Grid item xs={12}>
                     <Typography>
                       <span className={classes.ticker}>
@@ -417,34 +413,7 @@ function DashboardView() {
                       ${symbolPrice.toFixed(2)}
                     </Typography>
                   </Grid>
-                  <Grid item>
-                    <ButtonGroup>
-                      <Button
-                        color="inherit"
-                        onClick={(e) => setBuyOrSell("buy")}
-                        variant="none"
-                        className={
-                          buyOrSell === "buy"
-                            ? classes.selected
-                            : classes.unSelected
-                        }
-                      >
-                        Buy
-                      </Button>
-                      <Button
-                        color="inherit"
-                        onClick={(e) => setBuyOrSell("sell")}
-                        variant="none"
-                        className={
-                          buyOrSell === "sell"
-                            ? classes.selected
-                            : classes.unSelected
-                        }
-                      >
-                        Sell
-                      </Button>
-                    </ButtonGroup>
-                  </Grid>
+                  {/* call or put button group */}
                   <Grid item>
                     <ButtonGroup className={classes.buttonGroup}>
                       <Button
@@ -479,19 +448,19 @@ function DashboardView() {
                       </Button>
                     </ButtonGroup>
                   </Grid>
+                  {/* expiration select dropdown */}
                   <Grid item>
                     <FormControl
                       variant="outlined"
                       className={classes.formControl}
                     >
-                      <InputLabel id="demo-simple-select-outlined-label">
+                      <InputLabel shrink id="exp-label">
                         Expiration
                       </InputLabel>
                       <Select
-                        labelId="demo-simple-select-outlined-label"
-                        id="demo-simple-select-outlined"
+                        labelId="exp-label"
                         value={expiration}
-                        onChange={(e) => setExpiration(e.target.value)}
+                        onChange={(e) => handleChangeExpiration(e.target.value)}
                         label="Expiration"
                       >
                         {expirationDates.map((exp) => {
@@ -509,62 +478,65 @@ function DashboardView() {
                       </Select>
                     </FormControl>
                   </Grid>
-                  <Grid item xs={12}>
-                    <OptionTable
-                      chosenOptionChain={chosenOptionChain}
-                      gainOrLoss={gainOrLoss}
-                      selectedOption={selectedOption}
-                      isSelected={(call) => {
-                        setSelectedOption(call.strike);
-                        setChartOptionPrice(call.lastPrice.toFixed(2));
-                      }}
-                    />
-                  </Grid>
-                  {selectedOption > 0 && (
-                    <Grid container direction="column">
-                      <Grid item>
-                        <Typography className={classes.dialog}>
-                          <span className={classes.ticker}>
-                            {symbol.toUpperCase() + " "}
-                          </span>
-                          ${adjustableSymbolPrice.toFixed(2)}
-                        </Typography>
-                      </Grid>
-                      <Grid item className={classes.halfWidth}>
-                        <IOSSlider
-                          step={0.5}
-                          min={0}
-                          max={Math.round(symbolPrice*2)}
-                          value={adjustableSymbolPrice}
-                          onChange={(e, nV) => setAdjustableSymbolPrice(nV)}
-                          valueLabelDisplay="on"
-                        />
-                      </Grid>
-                      <Grid item>
-                        <Typography className={classes.subheader}>
-                          {symbol.toUpperCase() + " "} ${selectedOption}{" "}
-                          {callsOrPuts.toUpperCase()}
-                        </Typography>
-                      </Grid>
-                      <Grid item>
-                        <Typography className={classes.subheader}>
-                          ${chartOptionPrice}
-                        </Typography>
-                      </Grid>
-                      <Grid item>{generateChart()}</Grid>
+                  {/* options list table */}
+                  <Grid item container spacing={2} justify="space-between">
+                    <Grid item xs={6}>
+                      <OptionTable
+                        chosenOptionChain={chosenOptionChain}
+                        gainOrLoss={gainOrLoss}
+                        selectedOption={selectedOption}
+                        isSelected={(call) => {
+                          setSelectedOption(call.strike);
+                        }}
+                      />
                     </Grid>
-                  )}
+                    {/* chosen option explanation */}
+                    <Grid item xs={6}>
+                      <Card>
+                        <CardHeader
+                          className={classes.cardHeader}
+                          titleTypographyProps={{ variant: "h5", fontStyle: "bold" }}
+                          title={`$${symbol}
+                                  ${moment.unix(expiration).add(1, 'day').format('M/D')}
+                                  ${selectedOption}c`}
+                          subheader="What Does This Mean?"
+                        />
+                        <CardContent>
+                          <Typography>
+                            You are buying an options contract to purchase 100 shares of {symbol}
+                          </Typography>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  </Grid>
+                  <Grid container direction="column">
+                    <Grid item className={classes.dialog}>
+                      Stock Price Range
+                      <IOSSlider
+                        step={0.5}
+                        min={0}
+                        max={50}
+                        value={stockRange}
+                        onChange={(e, nV) => setStockRange(nV)}
+                        valueLabelDisplay="on"
+                      />
+                    </Grid>
+                  </Grid>
+                  <Grid container justify="center">
+                    <Grid item>{generateChart()}</Grid>
+                  </Grid>
                 </Grid>
               ) : (
                 <Grid container justify="center">
                   <Grid item xs={4}>
                     <TextField
+                      autoFocus
                       className={classes.enterTicker}
                       label="Symbol Lookup"
                       placeholder="AAPL, GME, etc."
-                      helperText="Enter a stock ticker"
-                      value={symbol}
-                      onChange={(e) => setSymbol(e.target.value)}
+                      helperText="Enter a stock ticker and press Enter"
+                      value={symbolSearch}
+                      onChange={(e) => setSymbolSearch(e.target.value)}
                       onKeyPress={(e) => {
                         if (e.key === "Enter") {
                           handleSymbolLookup();
@@ -576,28 +548,6 @@ function DashboardView() {
                 </Grid>
               )}
             </CardContent>
-            <CardActions>
-              {symbolPrice ? (
-                <Button
-                  variant="contained"
-                  color="primary"
-                  className={classes.leftSide}
-                  onClick={handleSymbolLookup}
-                >
-                  Choose New Ticker
-                </Button>
-              ) : (
-                <Button
-                  variant="contained"
-                  color="primary"
-                  className={classes.leftSide}
-                  onClick={handleSymbolLookup}
-                  disabled={symbol === ""}
-                >
-                  Show Options
-                </Button>
-              )}
-            </CardActions>
           </Card>
         </Grid>
         <Grid item>
@@ -606,44 +556,6 @@ function DashboardView() {
           </Typography>
         </Grid>
       </Grid>
-      <Dialog
-        open={contactUs}
-        fullWidth
-        maxWidth="sm"
-        className={classes.dialog}
-      >
-        <DialogTitle>Need Help?</DialogTitle>
-        <DialogContent>
-          <TextField
-            label="Full Name"
-            variant="outlined"
-            onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-              setName(event.target.value);
-            }}
-            value={name}
-          />
-          <TextField
-            label="Email"
-            variant="outlined"
-            onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-              setEmail(event.target.value);
-            }}
-            value={email}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button
-            variant="contained"
-            onClick={handleSubmitContact}
-            endIcon={<SendIcon />}
-          >
-            Submit
-          </Button>
-          <Button variant="outlined" onClick={() => setContactUs(false)}>
-            Cancel
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Grid>
   );
 }
