@@ -16,10 +16,9 @@ import {
   Grid,
   InputLabel,
   makeStyles,
-  withStyles,
   MenuItem,
   Select,
-  Slider,
+
   TextField,
   Theme,
   Typography,
@@ -30,11 +29,8 @@ import LibraryAddCheckRoundedIcon from "@material-ui/icons/LibraryAddCheckRounde
 import { useSnackbar } from "notistack";
 import moment from "moment";
 import axios from "axios";
-import blackScholes from "black-scholes";
-import greeks from "greeks";
-import { ResponsiveLine } from '@nivo/line';
-import { linearGradientDef } from '@nivo/core';
 import OptionTable from "./OptionTable";
+import OptionGraph from "./OptionGraph";
 
 const GainColor = "#00C805";
 const LossColor = "#FF5000";
@@ -103,57 +99,7 @@ const useStyles = makeStyles((theme: Theme) => ({
     textAlign: "center",
     margin: "auto",
   },
-  testContainer: {
-    width: 800,
-    height: 600,
-  },
 }));
-
-const IOSSlider = withStyles((theme: Theme) => ({
-  root: {
-    color: "#3880ff",
-    height: 2,
-    padding: "15px 0",
-  },
-  thumb: {
-    height: 28,
-    width: 28,
-    backgroundColor: "#fff",
-    marginTop: -14,
-    marginLeft: -14,
-    "&:focus, &:hover, &$active": {
-      boxShadow:
-        "0 3px 1px rgba(0,0,0,0.1),0 4px 8px rgba(0,0,0,0.3),0 0 0 1px rgba(0,0,0,0.02)",
-    },
-  },
-  active: {},
-  valueLabel: {
-    left: "calc(-50% + 12px)",
-    top: -22,
-    "& *": {
-      background: "transparent",
-      color: theme.palette.type === "light" ? "#000" : "#fff",
-    },
-  },
-  track: {
-    height: 2,
-  },
-  rail: {
-    height: 2,
-    opacity: 0.5,
-    backgroundColor: "#bfbfbf",
-  },
-  mark: {
-    backgroundColor: "#bfbfbf",
-    height: 8,
-    width: 1,
-    marginTop: -3,
-  },
-  markActive: {
-    opacity: 1,
-    backgroundColor: "currentColor",
-  },
-}))(Slider);
 
 const STATUS_OK = 200;
 const INFLATION_RATE = 0.014;
@@ -175,7 +121,7 @@ function DashboardView() {
   const [selectedOption, setSelectedOption] = React.useState(0);
   const [gainOrLoss, setGainOrLoss] = React.useState(GainColor);
   const [disableSearch, setDisableSearch] = React.useState(true);
-  const [stockRange, setStockRange] = React.useState(9);
+  const [config, setConfig] = React.useState({quantity: 1});
   const classes = useStyles({ gainOrLoss });
 
   const handleChangeExpiration = (newExpiration) => {
@@ -241,125 +187,6 @@ function DashboardView() {
         );
       });
     };
-
-  const generateChart = () => {
-    let timeDiffInYears = (
-      Math.abs(moment().diff(moment.unix(expiration).utc(), "days")) + 1) /
-      365;
-    let option = chosenOptionChain.find((call) => call.strike === selectedOption);
-    if (!option) {
-      return;
-    }
-    let chartPosData = [];
-    let chartNegData = [];
-    for (let i = symbolPrice*(1-stockRange/100); i < symbolPrice*(1+stockRange/100); i+= 0.1) {
-      let tempObj = {};
-      let output = blackScholes.blackScholes(
-        i,
-        option.strike,
-        timeDiffInYears,
-        option.impliedVolatility,
-        0.056,
-        callsOrPuts
-      );
-      tempObj.x = i;
-      tempObj.y = 100*(output - option.lastPrice);
-      if (tempObj.y >= 0) {
-        chartPosData.push(tempObj);
-      } else {
-        chartNegData.push(tempObj);
-      }
-    };
-
-    var data = [
-      {
-        id: 'positive',
-        data: chartPosData
-      },
-      {
-        id: 'negative',
-        data: chartNegData
-      }
-    ];
-
-    const theme = {
-      textColor: 'white',
-      fontSize: 14,
-      grid: {
-          line: {
-            stroke: "gray",
-            strokeWidth: 1,
-            strokeDasharray: "8 8"
-          }
-        }
-    };
-
-    return (
-      <div className={classes.testContainer}>
-        <ResponsiveLine
-          data={data}
-          defs={[
-            {
-                id: 'gradientLoss',
-                type: 'linearGradient',
-                colors: [
-                    { offset: 0, color: LossColor },
-                    { offset: 100, color: LossColor },
-                ],
-            },
-            {
-                id: 'gradientGain',
-                type: 'linearGradient',
-                colors: [
-                    { offset: 0, color: GainColor },
-                    { offset: 100, color: GainColor },
-                ],
-            },
-          ]}
-          fill={[
-            // match using function
-            { match: d => d.id === 'negative', id: 'gradientLoss' },
-            // match all, will only affect 'elm', because once a rule match,
-            // others are skipped, so now it acts as a fallback
-            { match: '*', id: 'gradientGain' },
-          ]}
-          margin={{ top: 50, right: 110, bottom: 50, left: 60 }}
-          xScale={{ type: 'linear', min: 'auto', max: 'auto'}}
-          xFormat=">-$.2f"
-          yScale={{ type: 'linear', min: 'auto', max: 'auto', reverse: false }}
-          yFormat=" >-$.2f"
-          axisTop={null}
-          axisRight={null}
-          axisBottom={{
-              orient: 'bottom',
-              tickSize: 5,
-              tickPadding: 5,
-              tickRotation: 0,
-          }}
-          axisLeft={{
-              orient: 'left',
-              tickSize: 5,
-              tickPadding: 5,
-              tickRotation: 0,
-              legend: 'profit',
-              legendOffset: -50,
-              legendPosition: 'middle'
-          }}
-          enableArea={true}
-          enablePoints={false}
-          useMesh={true}
-          theme={theme}
-          tooltip={(input) => {
-              return (
-              <div>
-                {input.point.data.yFormatted}
-              </div>
-            )}}
-          colors={d=>d.id === 'positive' ? GainColor : LossColor}
-        />
-      </div>
-    );
-  };
 
   return (
     <Grid className={classes.root}>
@@ -479,52 +306,28 @@ function DashboardView() {
                     </FormControl>
                   </Grid>
                   {/* options list table */}
-                  <Grid item container spacing={2} justify="space-between">
-                    <Grid item xs={6}>
-                      <OptionTable
-                        chosenOptionChain={chosenOptionChain}
-                        gainOrLoss={gainOrLoss}
-                        selectedOption={selectedOption}
-                        isSelected={(call) => {
-                          setSelectedOption(call.strike);
-                        }}
-                      />
-                    </Grid>
-                    {/* chosen option explanation */}
-                    <Grid item xs={6}>
-                      <Card>
-                        <CardHeader
-                          className={classes.cardHeader}
-                          titleTypographyProps={{ variant: "h5", fontStyle: "bold" }}
-                          title={`$${symbol}
-                                  ${moment.unix(expiration).add(1, 'day').format('M/D')}
-                                  ${selectedOption}c`}
-                          subheader="What Does This Mean?"
-                        />
-                        <CardContent>
-                          <Typography>
-                            You are buying an options contract to purchase 100 shares of {symbol}
-                          </Typography>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                  </Grid>
-                  <Grid container direction="column">
-                    <Grid item className={classes.dialog}>
-                      Stock Price Range
-                      <IOSSlider
-                        step={0.5}
-                        min={0}
-                        max={50}
-                        value={stockRange}
-                        onChange={(e, nV) => setStockRange(nV)}
-                        valueLabelDisplay="on"
-                      />
-                    </Grid>
-                  </Grid>
-                  <Grid container justify="center">
-                    <Grid item>{generateChart()}</Grid>
-                  </Grid>
+                  <OptionTable
+                    symbol={symbol}
+                    currPrice={symbolPrice}
+                    chosenOptionChain={chosenOptionChain}
+                    gainOrLoss={gainOrLoss}
+                    isSelected={(call) => {
+                      setSelectedOption(call);
+                    }}
+                    overrideConfig={(newConfig) => {
+                      setConfig(newConfig);
+                    }}
+                  />
+                  <OptionGraph
+                    symbol={symbol}
+                    currPrice={symbolPrice}
+                    chosenOptionChain={chosenOptionChain}
+                    gainOrLoss={gainOrLoss}
+                    selectedOption={selectedOption}
+                    callsOrPuts={callsOrPuts}
+                    expiration={expiration}
+                    config={config}
+                  />
                 </Grid>
               ) : (
                 <Grid container justify="center">
