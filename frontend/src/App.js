@@ -18,7 +18,7 @@ import DashboardView from "./DashboardView";
 import HeaderBar from "./HeaderBar";
 
 function App() {
-  const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
+  const prefersDarkMode = useMediaQuery("(prefers-color-scheme: light)");
 
   const theme: Theme = React.useMemo(
     () =>

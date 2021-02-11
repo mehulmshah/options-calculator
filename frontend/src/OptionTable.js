@@ -8,6 +8,10 @@
 import React from "react";
 import {
   Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  Grid,
   makeStyles,
   Paper,
   Table,
@@ -16,8 +20,12 @@ import {
   TableCell,
   TableHead,
   TableRow,
+  TextField,
   Theme,
+  Typography,
 } from "@material-ui/core";
+import CreateIcon from "@material-ui/icons/Create";
+import moment from "moment";
 
 const useStyles = makeStyles((theme: Theme) => ({
   root: {
@@ -44,6 +52,9 @@ const useStyles = makeStyles((theme: Theme) => ({
       backgroundColor: ({ gainOrLoss }) => gainOrLoss,
     },
   },
+  spacing: {
+    margin: theme.spacing(1),
+  },
 }));
 
 interface OptionTableProps {
@@ -62,6 +73,9 @@ function OptionTable({
   const classes = useStyles({ gainOrLoss });
   const tableRef = React.createRef();
   const selectedRef = React.createRef();
+  const [configDialogState, setConfigDialogState] = React.useState(false);
+  const [selected, setSelected] = React.useState({});
+  const [quantity, setQuantity] = React.useState(1);
 
   const displayCallOptions = () => {
     return chosenOptionChain
@@ -75,7 +89,7 @@ function OptionTable({
             selected={selected}
             ref={selected ? selectedRef : undefined}
             onClick={() => {
-              console.log(`User Click on Option ${JSON.stringify(call)}`);
+              setSelected(call);
               isSelected(call);
             }}
             className={classes.tableRowLightMode}
@@ -97,6 +111,11 @@ function OptionTable({
               >
                 ${call.lastPrice.toFixed(2)}
               </Button>
+            </TableCell>
+            <TableCell>
+              <CreateIcon
+                onClick={()=>setConfigDialogState(true)}
+              />
             </TableCell>
           </TableRow>
         );
@@ -120,6 +139,7 @@ function OptionTable({
   }, [selectedRef, tableRef]);
 
   return (
+    <>
     <TableContainer component={Paper} className={classes.table} ref={tableRef}>
       <Table stickyHeader>
         <TableHead>
@@ -129,11 +149,42 @@ function OptionTable({
             <TableCell>% Change</TableCell>
             <TableCell>Change</TableCell>
             <TableCell>Price</TableCell>
+            <TableCell></TableCell>
           </TableRow>
         </TableHead>
         <TableBody>{displayCallOptions()}</TableBody>
       </Table>
     </TableContainer>
+    <Dialog open={configDialogState} className={classes.spacing}>
+      <DialogTitle onClose={()=>setConfigDialogState(false)}>
+          {moment.unix(selected.expiration).format('M/D/YY')} ${selected.strike} Call
+        </DialogTitle>
+      <DialogContent>
+        <Grid container >
+          <Grid item xs={12}>
+            <TextField
+              label="Quantity"
+              value={quantity}
+              onChange={(e)=>setQuantity(e.target.value)}
+              helperText="How many contracts do you own?"
+              fullWidth
+            />
+          </Grid>
+          <Grid item>
+            <Typography>
+              The Greeks
+            </Typography>
+            <Grid item>
+              <Typography>
+                Delta
+              </Typography>
+            </Grid>
+          </Grid>
+
+        </Grid>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
 

@@ -352,7 +352,7 @@ function DashboardView() {
           tooltip={(input) => {
               return (
               <div>
-                {input.point.data.xFormatted}
+                {input.point.data.yFormatted}
               </div>
             )}}
           colors={d=>d.id === 'positive' ? GainColor : LossColor}
