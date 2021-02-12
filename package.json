@@ -4,8 +4,9 @@
   "scripts": {
     "start:dev": "nodemon",
     "start": "node index.js",
-    "heroku-postbuild": "cd frontend && yarn && yarn run build",
-    "test": "yarn workspaces run test"
+    "heroku-postbuild": "yarn run react-spring-issue-1078 && cd frontend && yarn && yarn run build",
+    "test": "yarn workspaces run test",
+    "react-spring-issue-1078": "find node_modules -path \\*@react-spring/\\*/package.json -exec sed -i.bak 's/\"sideEffects\": false/\"sideEffects\": true/g' {} +"
   },
   "nodemonConfig": {
     "watch": [
