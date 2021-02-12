@@ -203,7 +203,7 @@ function OptionGraph({
             {
                 axis: 'y',
                 value: 0,
-                lineStyle: { stroke: 'black', strokeWidth: 1 },
+                lineStyle: { stroke: theme.palette.type === "light" ? "black" : "white", strokeWidth: 1 },
             },
             {
                 axis: 'x',
@@ -211,7 +211,7 @@ function OptionGraph({
                 lineStyle: { stroke: '#0CB0E6', strokeWidth: 2 },
                 legend: 'Live Stock Price: $' + currPrice,
                 legendPosition: 'top',
-                textStyle: {stroke: '#0CB0E6', strokeWidth: 0.5},
+                textStyle: {stroke: '#0CB0E6'},
             },
           ]}
           defs={[

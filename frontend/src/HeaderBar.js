@@ -10,6 +10,7 @@ import {
   Button,
   Grid,
   makeStyles,
+  useTheme,
   Theme,
   Toolbar,
 } from "@material-ui/core";
@@ -18,6 +19,7 @@ import logo from "./logo.svg";
 const useStyles = makeStyles((theme: Theme) => ({
   root: {
     overflow: "hidden",
+    backgroundColor: theme.palette.type === "dark" ? "gray" : "white",
   },
   close: {
     padding: theme.spacing(0.5),
@@ -51,6 +53,7 @@ const useStyles = makeStyles((theme: Theme) => ({
 
 function HeaderBar() {
   const classes = useStyles();
+  const theme = useTheme();
 
   return (
     <Grid className={classes.root} container direction="column" wrap="nowrap">
