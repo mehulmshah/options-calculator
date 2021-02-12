@@ -70,7 +70,19 @@ const useStyles = makeStyles((theme: Theme) => ({
   },
   underlined: {
     textDecoration: "underline",
-    color: "#ffa500",
+    color: "black",
+  },
+  underlinedLiability: {
+    textDecoration: "underline",
+    color: "#FF5000",
+  },
+  underlinedAsset: {
+    textDecoration: "underline",
+    color: "#00C805",
+  },
+  underlinedGainOrLoss: {
+    textDecoration: "underline",
+    color: ({ gainOrLoss }) => gainOrLoss,
   },
   italics: {
     fontStyle: "italic",
@@ -182,8 +194,6 @@ function OptionTable({
         let targetHeight = selectedRef.current.offsetHeight;
         let top = targetOffset - targetHeight;
 
-        console.log(containerHeight, targetOffset, targetHeight, top);
-
         tableRef.current.scroll({
           top,
           behavior: "smooth",
@@ -226,15 +236,16 @@ function OptionTable({
           />
           <CardContent>
             <Typography className={classes.dialog}>
-              You are buying {quantity} contract{quantity > 1 && 's'} giving you the right, <span className={classes.italics}>
-              but not obligation</span>, to purchase <span className={classes.underlined}>
-              {100*quantity}</span> shares of <span className={classes.underlined}>
-              {symbol}</span> at a price of <span className={classes.underlined}>
+              You are buying {quantity} contract{quantity > 1 && 's'} that gives
+              you the right, <span className={classes.italics}>but not
+              obligation</span>, to purchase <span className={classes.underlinedAsset}>
+              {100*quantity}</span> shares of <span className={classes.underlinedGainOrLoss}>
+              {symbol}</span> at a price of <span className={classes.underlinedAsset}>
               ${selected.strike}</span> per share, on or before <span className={classes.underlined}>
-              {moment.unix(selected.expiration).add(1, 'day').format('M/D')}</span>.
+              {moment.unix(selected.expiration).add(1, 'day').format('MMMM Do, YYYY')}</span>.
             </Typography>
             <Typography className={classes.dialog}>
-              This contract will cost you <span className={classes.underlined}>
+              This contract will cost you <span className={classes.underlinedAsset}>
               ${price > 0 ? price*100*quantity : selected.lastPrice*100*quantity}</span> total.
             </Typography>
           </CardContent>
