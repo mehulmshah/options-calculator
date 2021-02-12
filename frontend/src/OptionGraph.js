@@ -133,13 +133,13 @@ function OptionGraph({
   };
 
   const generateChart = () => {
-    let connectedCharts = false;
     let timeDiffInYears = (
       Math.abs(moment().diff(moment.unix(expiration).utc(), "days")) + 1 + daysInFuture) /
       365;
     let chartPosData = [];
     let chartNegData = [];
-    for (let i = currPrice*(1-stockRange/100); i < currPrice*(1+stockRange/100); i+= 1) {
+    let adder = stockRange / 100;
+    for (let i = currPrice*(1-stockRange/100); i < currPrice*(1+stockRange/100); i+= adder) {
       let tempObj = {};
       let output = blackScholes.blackScholes(
         i,
@@ -152,11 +152,6 @@ function OptionGraph({
       tempObj.x = i;
       tempObj.y = config.quantity * 100 *(output - costPerContract);
       if (tempObj.y >= 0) {
-        if (!connectedCharts) {
-          chartNegData.push({x: i-1, y: 0});
-          chartPosData.push({x: i-1, y: 0});
-          connectedCharts = true;
-        }
         chartPosData.push(tempObj);
       } else {
         chartNegData.push(tempObj);
@@ -251,7 +246,7 @@ function OptionGraph({
               tickSize: 5,
               tickPadding: 5,
               tickRotation: 0,
-              legend: 'stock price',
+              legend: 'Stock Price',
               legendOffset: 50,
               legendPosition: 'middle',
               format: (values) => `$${values}`,
@@ -262,7 +257,7 @@ function OptionGraph({
               tickSize: 5,
               tickPadding: 5,
               tickRotation: 0,
-              legend: 'profit',
+              legend: 'Profit',
               legendOffset: -65,
               legendPosition: 'middle',
               format: (values) => `$${values}`,
