@@ -9,9 +9,6 @@ import React from "react";
 import {
   Button,
   ButtonGroup,
-  Card,
-  CardContent,
-  CardHeader,
   FormControl,
   Grid,
   InputLabel,
@@ -25,7 +22,6 @@ import {
 } from "@material-ui/core";
 import CreateIcon from "@material-ui/icons/Create";
 import CreateIconOutlined from "@material-ui/icons/CreateOutlined";
-import LibraryAddCheckRoundedIcon from "@material-ui/icons/LibraryAddCheckRounded";
 import { useSnackbar } from "notistack";
 import moment from "moment";
 import axios from "axios";
@@ -38,7 +34,8 @@ const LossColor = "#FF5000";
 const useStyles = makeStyles((theme: Theme) => ({
   root: {
     minWidth: 600,
-    margin: theme.spacing(1),
+    maxWidth: "90vw",
+    margin: "auto",
     marginTop: 50,
   },
   bold: {
@@ -52,7 +49,7 @@ const useStyles = makeStyles((theme: Theme) => ({
     cursor: "pointer",
     margin: theme.spacing(1),
   },
-  dialog: {
+  spacing: {
     margin: theme.spacing(1),
   },
   icon: {
@@ -112,13 +109,12 @@ function DashboardView() {
   const [symbolSearch, setSymbolSearch] = React.useState("");
   const [symbol, setSymbol] = React.useState("");
   const [symbolPrice, setSymbolPrice] = React.useState(0);
-  const [adjustableSymbolPrice, setAdjustableSymbolPrice] = React.useState(0);
   const [optionChain, setOptionChain] = React.useState({
     calls: [0], puts: [0],
   });
   const [chosenOptionChain, setChosenOptionChain] = React.useState([0]);
   const [callsOrPuts, setCallsOrPuts] = React.useState("call");
-  const [selectedOption, setSelectedOption] = React.useState(0);
+  const [selectedOption, setSelectedOption] = React.useState({});
   const [gainOrLoss, setGainOrLoss] = React.useState(GainColor);
   const [disableSearch, setDisableSearch] = React.useState(true);
   const [config, setConfig] = React.useState({quantity: 1});
@@ -145,7 +141,6 @@ function DashboardView() {
           let currPrice = response.data.chart.result[0].meta.regularMarketPrice;
           let prevPrice = response.data.chart.result[0].meta.chartPreviousClose;
           setSymbolPrice(currPrice);
-          setAdjustableSymbolPrice(currPrice);
           setGainOrLoss(currPrice - prevPrice > 0 ? GainColor : LossColor);
         }
       })
@@ -192,171 +187,155 @@ function DashboardView() {
     <Grid className={classes.root}>
       <Grid container justify="center">
         <Grid item>
-          <Card className={classes.card}>
-            <CardHeader
-              className={classes.cardHeader}
-              avatar={<LibraryAddCheckRoundedIcon className={classes.icon} />}
-              titleTypographyProps={{ variant: "h5", fontStyle: "bold" }}
-              title="Options Calculator"
-              subheader="Democratize Earnings"
-            />
-            <CardContent>
-              {symbol !== "" ? (
-                <Grid container spacing={2} alignItems="center">
-                  {/* input new ticker plus button */}
-                  <Grid item xs={4}>
-                    <TextField
-                      className={classes.enterTicker}
-                      label="Symbol Lookup"
-                      placeholder="AAPL, GME, etc."
-                      helperText="Enter a stock ticker and press Enter"
-                      value={symbolSearch}
-                      onChange={(e) => setSymbolSearch(e.target.value)}
-                      onKeyPress={(e) => {
-                        if (e.key === "Enter") {
-                          handleSymbolLookup();
-                        }
-                      }}
-                      fullWidth={true}
-                      disabled={disableSearch}
-                    />
-                  </Grid>
-                  <Grid item xs={1}>
-                    {disableSearch ?
-                      <CreateIcon
-                        onClick={() => setDisableSearch(false)}
-                      /> :
-                      <CreateIconOutlined
-                        onClick={() => setDisableSearch(true)}
-                      />
+          {symbol !== "" ? (
+            <Grid container spacing={2} alignItems="center">
+              {/* input new ticker plus button */}
+              <Grid item xs={4}>
+                <TextField
+                  className={classes.enterTicker}
+                  label="Symbol Lookup"
+                  placeholder="AAPL, GME, etc."
+                  helperText="Enter a stock ticker and press Enter"
+                  value={symbolSearch}
+                  onChange={(e) => setSymbolSearch(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === "Enter") {
+                      handleSymbolLookup();
                     }
-                  </Grid>
-                  {/* ticker and current price */}
-                  <Grid item xs={12}>
-                    <Typography>
-                      <span className={classes.ticker}>
-                        {symbol.toUpperCase() + " "}
-                      </span>
-                      ${symbolPrice.toFixed(2)}
-                    </Typography>
-                  </Grid>
-                  {/* call or put button group */}
-                  <Grid item>
-                    <ButtonGroup className={classes.buttonGroup}>
-                      <Button
-                        color="inherit"
-                        onClick={(e) => {
-                          setCallsOrPuts("call");
-                          setChosenOptionChain(optionChain.calls);
-                        }}
-                        variant="none"
-                        className={
-                          callsOrPuts === "call"
-                            ? classes.selected
-                            : classes.unSelected
-                        }
-                      >
-                        Calls
-                      </Button>
-                      <Button
-                        color="inherit"
-                        onClick={(e) => {
-                          setCallsOrPuts("put");
-                          setChosenOptionChain(optionChain.puts);
-                        }}
-                        variant="none"
-                        className={
-                          callsOrPuts === "put"
-                            ? classes.selected
-                            : classes.unSelected
-                        }
-                      >
-                        Puts
-                      </Button>
-                    </ButtonGroup>
-                  </Grid>
-                  {/* expiration select dropdown */}
-                  <Grid item>
-                    <FormControl
-                      variant="outlined"
-                      className={classes.formControl}
-                    >
-                      <InputLabel shrink id="exp-label">
-                        Expiration
-                      </InputLabel>
-                      <Select
-                        labelId="exp-label"
-                        value={expiration}
-                        onChange={(e) => handleChangeExpiration(e.target.value)}
-                        label="Expiration"
-                      >
-                        {expirationDates.map((exp) => {
-                          let date = moment.unix(exp).utc();
-                          let format =
-                            date.year() === moment().year()
-                              ? "MMMM Do"
-                              : "MMMM Do, YYYY";
-                          return (
-                            <MenuItem value={exp}>
-                              {date.format(format)}
-                            </MenuItem>
-                          );
-                        })}
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                  {/* options list table */}
-                  <OptionTable
-                    symbol={symbol}
-                    currPrice={symbolPrice}
-                    chosenOptionChain={chosenOptionChain}
-                    gainOrLoss={gainOrLoss}
-                    isSelected={(call) => {
-                      setSelectedOption(call);
-                    }}
-                    overrideConfig={(newConfig) => {
-                      setConfig(newConfig);
-                    }}
+                  }}
+                  fullWidth={true}
+                  disabled={disableSearch}
+                />
+              </Grid>
+              <Grid item xs={1}>
+                {disableSearch ?
+                  <CreateIcon
+                    onClick={() => setDisableSearch(false)}
+                  /> :
+                  <CreateIconOutlined
+                    onClick={() => setDisableSearch(true)}
                   />
-                  <OptionGraph
-                    symbol={symbol}
-                    currPrice={symbolPrice}
-                    chosenOptionChain={chosenOptionChain}
-                    gainOrLoss={gainOrLoss}
-                    selectedOption={selectedOption}
-                    callsOrPuts={callsOrPuts}
-                    expiration={expiration}
-                    config={config}
-                  />
-                </Grid>
-              ) : (
-                <Grid container justify="center">
-                  <Grid item xs={4}>
-                    <TextField
-                      autoFocus
-                      className={classes.enterTicker}
-                      label="Symbol Lookup"
-                      placeholder="AAPL, GME, etc."
-                      helperText="Enter a stock ticker and press Enter"
-                      value={symbolSearch}
-                      onChange={(e) => setSymbolSearch(e.target.value)}
-                      onKeyPress={(e) => {
-                        if (e.key === "Enter") {
-                          handleSymbolLookup();
-                        }
-                      }}
-                      fullWidth={true}
-                    />
-                  </Grid>
-                </Grid>
+                }
+              </Grid>
+              {/* ticker and current price */}
+              <Grid item xs={12} >
+                <Typography>
+                  <span className={classes.ticker}>
+                    {symbol.toUpperCase() + " "}
+                  </span>
+                  ${symbolPrice.toFixed(2)}
+                </Typography>
+              </Grid>
+              {/* call or put button group */}
+              <Grid item>
+                <ButtonGroup className={classes.buttonGroup}>
+                  <Button
+                    color="inherit"
+                    onClick={(e) => {
+                      setCallsOrPuts("call");
+                      setChosenOptionChain(optionChain.calls);
+                    }}
+                    variant="none"
+                    className={
+                      callsOrPuts === "call"
+                        ? classes.selected
+                        : classes.unSelected
+                    }
+                  >
+                    Calls
+                  </Button>
+                  <Button
+                    color="inherit"
+                    onClick={(e) => {
+                      setCallsOrPuts("put");
+                      setChosenOptionChain(optionChain.puts);
+                    }}
+                    variant="none"
+                    className={
+                      callsOrPuts === "put"
+                        ? classes.selected
+                        : classes.unSelected
+                    }
+                  >
+                    Puts
+                  </Button>
+                </ButtonGroup>
+              </Grid>
+              {/* expiration select dropdown */}
+              <Grid item>
+                <FormControl
+                  variant="outlined"
+                  className={classes.formControl}
+                >
+                  <InputLabel shrink id="exp-label">
+                    Expiration
+                  </InputLabel>
+                  <Select
+                    labelId="exp-label"
+                    value={expiration}
+                    onChange={(e) => handleChangeExpiration(e.target.value)}
+                    label="Expiration"
+                  >
+                    {expirationDates.map((exp) => {
+                      let date = moment.unix(exp).utc();
+                      let format =
+                        date.year() === moment().year()
+                          ? "MMMM Do"
+                          : "MMMM Do, YYYY";
+                      return (
+                        <MenuItem value={exp}>
+                          {date.format(format)}
+                        </MenuItem>
+                      );
+                    })}
+                  </Select>
+                </FormControl>
+              </Grid>
+              {/* options list table */}
+              <OptionTable
+                symbol={symbol}
+                currPrice={symbolPrice}
+                chosenOptionChain={chosenOptionChain}
+                gainOrLoss={gainOrLoss}
+                isSelected={(opt) => {
+                  setSelectedOption(opt);
+                }}
+                overrideConfig={(newConfig) => {
+                  setConfig(newConfig);
+                }}
+              />
+            { selectedOption.strike && (
+                <OptionGraph
+                  symbol={symbol}
+                  currPrice={symbolPrice}
+                  selectedOption={selectedOption}
+                  callsOrPuts={callsOrPuts}
+                  expiration={expiration}
+                  config={config}
+                />
               )}
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item>
-          <Typography className={classes.card}>
-            Chance of profit is an estimate based on the Black-Scholes Model, and is for informational purposes only. Numerous factors that are not reducible to a model determine the actual chance of profit for a particular option contract or strategy.
-          </Typography>
+            </Grid>
+          ) : (
+            <Grid container justify="center">
+              <Grid item>
+                <TextField
+                  autoFocus
+                  className={classes.enterTicker}
+                  label="Symbol Lookup"
+                  placeholder="AAPL, GME, etc."
+                  helperText="Enter a stock ticker and press Enter"
+                  value={symbolSearch}
+                  onChange={(e) => setSymbolSearch(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === "Enter") {
+                      handleSymbolLookup();
+                    }
+                  }}
+                  fullWidth={true}
+                />
+              </Grid>
+            </Grid>
+          )}
         </Grid>
       </Grid>
     </Grid>

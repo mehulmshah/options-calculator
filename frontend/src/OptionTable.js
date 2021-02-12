@@ -29,7 +29,6 @@ import {
   Typography,
 } from "@material-ui/core";
 import CreateIcon from "@material-ui/icons/Create";
-import CloseIcon from '@material-ui/icons/Close';
 import moment from "moment";
 import greeks from "greeks";
 
@@ -47,13 +46,18 @@ const useStyles = makeStyles((theme: Theme) => ({
   },
   tableRowLightMode: {
     "&.Mui-selected, &.Mui-selected:hover": {
-      backgroundColor: ({ gainOrLoss }) => gainOrLoss + "1A",
+      backgroundColor: ({ gainOrLoss }) => gainOrLoss + "4D",
       color: "white",
     },
+    "&:hover": {
+      backgroundColor: ({ gainOrLoss }) => gainOrLoss + "1A",
+    },
+    cursor: "pointer",
   },
   table: {
     width: "100%",
-    maxHeight: 230,
+    maxHeight: 500,
+    height: 400,
   },
   test: {
     backgroundColor: ({ gainOrLoss }) => gainOrLoss,
@@ -63,12 +67,6 @@ const useStyles = makeStyles((theme: Theme) => ({
   },
   spacing: {
     margin: theme.spacing(1),
-  },
-  closeButton: {
-    position: 'absolute',
-    right: theme.spacing(1),
-    top: theme.spacing(1),
-    color: theme.palette.grey[500],
   },
   underlined: {
     textDecoration: "underline",
@@ -107,44 +105,44 @@ function OptionTable({
 
   const displayCallOptions = () => {
     return chosenOptionChain
-      .filter((call) => call)
-      .map((call) => {
-        let currSelected = call.strike === selected.strike;
-        let sign = call.percentChange > 0 ? "+" : "-";
+      .filter((opt) => opt)
+      .map((opt) => {
+        let currSelected = (opt.strike === selected.strike);
+        let sign = opt.percentChange >= 0 ? "+" : "-";
         return (
           <TableRow
-            key={call.contractSymbol}
+            key={opt.contractSymbol}
             selected={currSelected}
-            ref={selected ? selectedRef : undefined}
+            ref={currSelected ? selectedRef : undefined}
             onClick={() => {
-              setSelected(call);
-              isSelected(call);
+              setSelected(opt);
+              isSelected(opt);
             }}
             className={classes.tableRowLightMode}
           >
-            <TableCell className={classes.bold}>${call.strike}</TableCell>
-            <TableCell>${(call.strike + call.lastPrice).toFixed(2)}</TableCell>
+            <TableCell className={classes.bold}>${opt.strike}</TableCell>
+            <TableCell>${(opt.strike + opt.lastPrice).toFixed(2)}</TableCell>
             <TableCell>
-              {sign + Math.abs(call.percentChange).toFixed(2)}%
+              {sign + Math.abs(opt.percentChange).toFixed(2)}%
             </TableCell>
             <TableCell>
-              {sign}${Math.abs(call.change).toFixed(2)}
+              {sign}${Math.abs(opt.change).toFixed(2)}
             </TableCell>
             <TableCell>
               <Button
                 className={classes.test}
                 variant={
-                  call.strike === selected.strike ? "contained" : "outlined"
+                  opt.strike === selected.strike ? "contained" : "outlined"
                 }
               >
-                ${call.lastPrice.toFixed(2)}
+                ${opt.lastPrice.toFixed(2)}
               </Button>
             </TableCell>
             <TableCell>
               <CreateIcon
                 onClick={()=> {
-                  calculateGreeks(call);
-                  setPrice(call.lastPrice);
+                  calculateGreeks(opt);
+                  setPrice(opt.lastPrice);
                   setConfigDialogState(true);
                 }}
               />
@@ -184,6 +182,8 @@ function OptionTable({
         let targetHeight = selectedRef.current.offsetHeight;
         let top = targetOffset - targetHeight;
 
+        console.log(containerHeight, targetOffset, targetHeight, top);
+
         tableRef.current.scroll({
           top,
           behavior: "smooth",
@@ -194,8 +194,8 @@ function OptionTable({
 
   return (
     <>
-    <Grid item container spacing={2} justify="space-between">
-      <Grid item xs={6}>
+    <Grid item container spacing={3} justify="space-between">
+      <Grid item xs>
         <TableContainer component={Paper} className={classes.table} ref={tableRef}>
           <Table stickyHeader>
             <TableHead>
@@ -213,36 +213,34 @@ function OptionTable({
         </TableContainer>
       </Grid>
       {/* chosen option explanation */}
-      <Grid item xs={6}>
+      {selected.strike && (
+      <Grid item xs>
         <Card className={classes.table}>
-          {selected.strike && (
-          <>
-            <CardHeader
-              className={classes.dialog}
-              titleTypographyProps={{ variant: "h5", fontStyle: "bold" }}
-              title={`${symbol}
-                      ${moment.unix(selected.expiration).add(1, 'day').format('M/D')}
-                      $${selected.strike}c`}
-              subheader="What Does This Mean?"
-            />
-            <CardContent>
-              <Typography className={classes.dialog}>
-                You are buying {quantity} contract{quantity > 1 && 's'} giving you the right, <span className={classes.italics}>
-                but not obligation</span>, to purchase <span className={classes.underlined}>
-                {100*quantity}</span> shares of <span className={classes.underlined}>
-                {symbol}</span> at a price of <span className={classes.underlined}>
-                ${selected.strike}</span> per share, on or before <span className={classes.underlined}>
-                {moment.unix(selected.expiration).add(1, 'day').format('M/D')}</span>.
-              </Typography>
-              <Typography className={classes.dialog}>
-                This contract will cost you <span className={classes.underlined}>
-                ${price > 0 ? price*100*quantity : selected.lastPrice*100*quantity}</span> total.
-              </Typography>
-            </CardContent>
-          </>
-          )}
+          <CardHeader
+            className={classes.dialog}
+            titleTypographyProps={{ variant: "h5", fontStyle: "bold" }}
+            title={`${symbol}
+                    ${moment.unix(selected.expiration).add(1, 'day').format('M/D')}
+                    $${selected.strike}c`}
+            subheader="What Does This Mean?"
+          />
+          <CardContent>
+            <Typography className={classes.dialog}>
+              You are buying {quantity} contract{quantity > 1 && 's'} giving you the right, <span className={classes.italics}>
+              but not obligation</span>, to purchase <span className={classes.underlined}>
+              {100*quantity}</span> shares of <span className={classes.underlined}>
+              {symbol}</span> at a price of <span className={classes.underlined}>
+              ${selected.strike}</span> per share, on or before <span className={classes.underlined}>
+              {moment.unix(selected.expiration).add(1, 'day').format('M/D')}</span>.
+            </Typography>
+            <Typography className={classes.dialog}>
+              This contract will cost you <span className={classes.underlined}>
+              ${price > 0 ? price*100*quantity : selected.lastPrice*100*quantity}</span> total.
+            </Typography>
+          </CardContent>
         </Card>
       </Grid>
+      )}
     </Grid>
     <Dialog open={configDialogState} className={classes.spacing}>
       <DialogTitle>
@@ -299,7 +297,6 @@ function OptionTable({
       <DialogActions>
         <Button
           variant="outlined"
-          color="secondary"
           onClick={()=>setConfigDialogState(false)}
         >
           Cancel

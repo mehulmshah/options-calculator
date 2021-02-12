@@ -7,46 +7,26 @@
 
 import React from "react";
 import {
-  Button,
   Card,
   CardContent,
   CardHeader,
-  FormControl,
-  Dialog,
-  DialogActions,
-  DialogTitle,
-  DialogContent,
-  InputLabel,
   Grid,
   makeStyles,
-  withStyles,
-  Paper,
   Slider,
-  Table,
-  TableBody,
-  TableContainer,
-  TableCell,
-  TableHead,
-  TableRow,
-  TextField,
+  Tooltip,
+  useTheme,
   Theme,
   Typography,
 } from "@material-ui/core";
-import CreateIcon from "@material-ui/icons/Create";
-import CloseIcon from '@material-ui/icons/Close';
 import moment from "moment";
 import blackScholes from "black-scholes";
-import greeks from "greeks";
 import { ResponsiveLine } from '@nivo/line';
-import { linearGradientDef } from '@nivo/core';
 
 const GainColor = "#00C805";
 const LossColor = "#FF5000";
 
 const useStyles = makeStyles((theme: Theme) => ({
   root: {
-    minWidth: 600,
-    margin: theme.spacing(1),
     marginTop: 50,
   },
   bold: {
@@ -76,8 +56,8 @@ const useStyles = makeStyles((theme: Theme) => ({
     fontStyle: "italic",
   },
   testContainer: {
-    width: 800,
-    height: 600,
+    width: 1000,
+    height: 650,
   },
   halfWidth: {
     width: "30%",
@@ -86,52 +66,6 @@ const useStyles = makeStyles((theme: Theme) => ({
     fontSize: 16,
   }
 }));
-
-const IOSSlider = withStyles((theme: Theme) => ({
-  root: {
-    color: "#3880ff",
-    height: 2,
-    padding: "15px 0",
-  },
-  thumb: {
-    height: 28,
-    width: 28,
-    backgroundColor: "#fff",
-    marginTop: -14,
-    marginLeft: -14,
-    "&:focus, &:hover, &$active": {
-      boxShadow:
-        "0 3px 1px rgba(0,0,0,0.1),0 4px 8px rgba(0,0,0,0.3),0 0 0 1px rgba(0,0,0,0.02)",
-    },
-  },
-  active: {},
-  valueLabel: {
-    left: "calc(-50% + 12px)",
-    top: -22,
-    "& *": {
-      background: "transparent",
-      color: theme.palette.type === "light" ? "#000" : "#fff",
-    },
-  },
-  track: {
-    height: 2,
-  },
-  rail: {
-    height: 2,
-    opacity: 0.5,
-    backgroundColor: "#bfbfbf",
-  },
-  mark: {
-    backgroundColor: "#bfbfbf",
-    height: 8,
-    width: 1,
-    marginTop: -3,
-  },
-  markActive: {
-    opacity: 1,
-    backgroundColor: "currentColor",
-  },
-}))(Slider);
 
 interface OptionGraphProps {
   symbol: string;
@@ -151,14 +85,12 @@ function OptionGraph({
   config,
 }: OptionGraphProps) {
   const classes = useStyles();
-  const tableRef = React.createRef();
-  const selectedRef = React.createRef();
-  const [selected, setSelected] = React.useState({});
-  const [quantity, setQuantity] = React.useState(1);
-  const [price, setPrice] = React.useState(0);
+  const theme = useTheme();
   const [stockRange, setStockRange] = React.useState(9);
-  const [daysInFuture, setDaysInFuture] = React.useState(0.0);
+  const [daysInFutureSlider, setDaysInFutureSlider] = React.useState(0);
+  const [daysInFuture, setDaysInFuture] = React.useState(0);
   const [clickEvent, setClickEvent] = React.useState({});
+  const daysUntilExpiration = Math.abs(moment().diff(moment.unix(expiration).utc(), "days")) + 1;
 
   const generateChart = () => {
     let timeDiffInYears = (
@@ -196,8 +128,8 @@ function OptionGraph({
       }
     ];
 
-    const theme = {
-      textColor: 'white',
+    const chartTheme = {
+      textColor: theme.palette.type === "light" ? "black" : "white",
       fontSize: 14,
       grid: {
           line: {
@@ -209,7 +141,8 @@ function OptionGraph({
       axis: {
         legend: {
           text: {
-            fill: '#fff'
+            fontSize: 16,
+            fill: theme.palette.type === "light" ? "black" : "white",
           }
         }
       },
@@ -233,10 +166,10 @@ function OptionGraph({
             {
                 axis: 'x',
                 value: currPrice,
-                lineStyle: { stroke: '#add8e6', strokeWidth: 1 },
+                lineStyle: { stroke: '#0CB0E6', strokeWidth: 2 },
                 legend: 'Live Stock Price: $' + currPrice,
                 legendPosition: 'top',
-                itemTextColor: '#fff',
+                itemTextColor: '#add8e6',
             },
           ]}
           defs={[
@@ -264,7 +197,7 @@ function OptionGraph({
             // others are skipped, so now it acts as a fallback
             { match: '*', id: 'gradientGain' },
           ]}
-          margin={{ top: 50, right: 110, bottom: 50, left: 60 }}
+          margin={{ top: 50, right: 110, bottom: 70, left: 80 }}
           xScale={{ type: 'linear', min: 'auto', max: 'auto'}}
           xFormat=">-$.2f"
           yScale={{ type: 'linear', min: 'auto', max: 'auto' }}
@@ -277,8 +210,9 @@ function OptionGraph({
               tickPadding: 5,
               tickRotation: 0,
               legend: 'stock price',
-              legendOffset: 40,
-              legendPosition: 'middle'
+              legendOffset: 50,
+              legendPosition: 'middle',
+              format: (values) => `$${values}`,
           }}
           axisLeft={{
               orient: 'left',
@@ -286,13 +220,14 @@ function OptionGraph({
               tickPadding: 5,
               tickRotation: 0,
               legend: 'profit',
-              legendOffset: -50,
-              legendPosition: 'middle'
+              legendOffset: -65,
+              legendPosition: 'middle',
+              format: (values) => `$${values}`,
           }}
           enableArea={true}
           enablePoints={false}
           useMesh={true}
-          theme={theme}
+          theme={chartTheme}
           tooltip={(input) => {
               return (
               <div>
@@ -301,94 +236,94 @@ function OptionGraph({
             )}}
           colors={d=>d.id === 'positive' ? GainColor : LossColor}
           onClick={(p, e)=> setClickEvent(p)}
-
         />
       </div>
     );
   };
 
-  const calcDaysUntilExpiration = () => {
-    let days = Math.abs(moment().diff(moment.unix(expiration).utc(), "days")) + 1;
-    return days;
-  }
-
   return (
     <>
-      <Grid container direction="column">
-        <Grid item>
-          <Typography id="non-linear-slider" gutterBottom>
-            Chart Range: {stockRange}%
-          </Typography>
-          <Slider
-            value={stockRange}
-            min={0}
-            step={0.5}
-            max={50}
-            onChange={(e, nV) => setStockRange(nV)}
-            aria-labelledby="non-linear-slider"
-          />
-        </Grid>
-        <Grid item>
-          <Typography id="date-slider" gutterBottom>
-            Days In Future: {daysInFuture} ({moment().add(daysInFuture, "days").format("MMM Do")})
-          </Typography>
-          <Slider
-            value={daysInFuture}
-            min={0}
-            step={1}
-            max={calcDaysUntilExpiration()}
-            onChange={(e, nV) => setDaysInFuture(nV)}
-            aria-labelledby="date-slider"
-          />
-        </Grid>
-      </Grid>
-      <Grid container justify="center" spacing={2}>
+      <Grid container justify="center" spacing={3}>
         <Grid item>{generateChart()}</Grid>
-          <Grid item xs={6}>
-            <Card className={classes.table}>
-              <CardHeader
-                classes={{
-                  title: classes.CardHeader,
-                }}
-                titleTypographyProps={{ variant: "h5", fontStyle: "bold" }}
-                title={clickEvent.data ? (`Exercise ${quantity} ${symbol}
-                        ${moment.unix(expiration).add(1, 'day').format('M/D')}
-                        $${selectedOption.strike}c @ ${clickEvent.data.xFormatted}
-                        on ${moment().add(daysInFuture, 'days').format("MMM D")}`) :
-                      ('Click on the graph to view your potential exits')}
-                subheader="What Does This Mean?"
+        <Grid container direction="column" className={classes.root}>
+          <Grid container direction="row" spacing={4}>
+            <Grid item xs>
+              <Tooltip title="Adjust the range of stock prices shown in the graph" placement="top-start">
+              <Typography id="range-slider" gutterBottom>
+                Stock Price Axis Range: ± {stockRange}%
+              </Typography>
+              </Tooltip>
+              <Slider
+                value={stockRange}
+                min={0}
+                step={0.5}
+                max={50}
+                onChange={(e, nV) => setStockRange(nV)}
+                aria-labelledby="non-range-slider"
               />
-              <CardContent>
-                {clickEvent.data && (
-                  <>
-                    <Typography className={classes.dialog}>
-                      Cost: <span className={classes.underlined}>
-                      ${((config.avgCost ? config.avgCost*100 : selectedOption.lastPrice*100) + 100*selectedOption.strike)
-                        .toFixed(2).toLocaleString()}</span> (${config.avgCost ? config.avgCost*100 : selectedOption.lastPrice * 100} contract +
-                        ${100*selectedOption.strike} for 100 shares
-                        @ ${selectedOption.strike})
-                    </Typography>
-                    <Typography className={classes.dialog}>
-                      Get: 100 {symbol} shares @ ${selectedOption.strike}/ea
-                      (now worth ${clickEvent.data.x.toFixed(2)}/ea for a total
-                      of <span className={classes.underlined}>
-                      ${100*clickEvent.data.x.toFixed(2)}</span>)
-                    </Typography>
-                    <Typography className={classes.dialog}>
-                      Return: <span className={classes.underlined}>
-                      ${100*clickEvent.data.x.toFixed(2) - (
-                        (config.avgCost ? config.avgCost*100 : selectedOption.lastPrice*100) +
-                        100*selectedOption.strike)}</span> (<span className={classes.underlined}>
-                          ${100*clickEvent.data.x.toFixed(2)}</span> - <span className={classes.underlined}>
-                          ${((config.avgCost ? config.avgCost*100 : selectedOption.lastPrice*100) + 100*selectedOption.strike)
-                            .toFixed(2).toLocaleString()}</span>)
-                    </Typography>
-                  </>
-                )}
-              </CardContent>
-            </Card>
+            </Grid>
+            <Grid item xs>
+              <Tooltip title="Adjust the date" placement="top-start">
+                <Typography id="date-slider" gutterBottom>
+                  Date: {daysInFuture < 1 && "Today"} ({moment().add(Math.floor(daysInFuture), "days").format("MMM Do")})
+                </Typography>
+              </Tooltip>
+              <Slider
+                value={daysInFutureSlider}
+                onChange={(e, nV) => {
+                  setDaysInFutureSlider(nV);
+                  setDaysInFuture((daysUntilExpiration*(nV)/100));
+                }}
+                aria-labelledby="date-slider"
+              />
+            </Grid>
           </Grid>
-          <Grid item xs={6}>
+        </Grid>
+        <Grid item xs={6}>
+          <Card className={classes.table}>
+            <CardHeader
+              classes={{
+                title: classes.CardHeader,
+              }}
+              titleTypographyProps={{ variant: "h5", fontStyle: "bold" }}
+              title={clickEvent.data ? (`Exercise ${symbol}
+                      ${moment.unix(expiration).add(1, 'day').format('M/D')}
+                      $${selectedOption.strike}c @ ${clickEvent.data.xFormatted}
+                      on ${moment().add(daysInFuture, 'days').format("MMM D")}`) :
+                    ('Click on the graph to view your potential exits')}
+              subheader="What Does This Mean?"
+            />
+            <CardContent>
+              {clickEvent.data && (
+                <>
+                  <Typography className={classes.dialog}>
+                    Cost: <span className={classes.underlined}>
+                    ${((config.avgCost ? config.avgCost*100 : selectedOption.lastPrice*100) + 100*selectedOption.strike)
+                      .toFixed(2).toLocaleString()}</span> (${config.avgCost ? config.avgCost*100 : selectedOption.lastPrice * 100} contract +
+                      ${100*selectedOption.strike} for 100 shares
+                      @ ${selectedOption.strike})
+                  </Typography>
+                  <Typography className={classes.dialog}>
+                    Get: 100 {symbol} shares @ ${selectedOption.strike}/ea
+                    (now worth ${clickEvent.data.x.toFixed(2)}/ea for a total
+                    of <span className={classes.underlined}>
+                    ${100*clickEvent.data.x.toFixed(2)}</span>)
+                  </Typography>
+                  <Typography className={classes.dialog}>
+                    Return: <span className={classes.underlined}>
+                    ${100*clickEvent.data.x.toFixed(2) - (
+                      (config.avgCost ? config.avgCost*100 : selectedOption.lastPrice*100) +
+                      100*selectedOption.strike)}</span> (<span className={classes.underlined}>
+                        ${100*clickEvent.data.x.toFixed(2)}</span> - <span className={classes.underlined}>
+                        ${((config.avgCost ? config.avgCost*100 : selectedOption.lastPrice*100) + 100*selectedOption.strike)
+                          .toFixed(2).toLocaleString()}</span>)
+                  </Typography>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={6}>
             <Card className={classes.table}>
               <CardHeader
                 className={classes.cardHeader}
@@ -422,7 +357,6 @@ function OptionGraph({
             </Card>
           </Grid>
       </Grid>
-
     </>
   );
 }

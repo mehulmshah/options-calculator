@@ -12,11 +12,18 @@ import {
   makeStyles,
   Theme,
   Toolbar,
+  Typography,
 } from "@material-ui/core";
+import TwitterIcon from "@material-ui/icons/Twitter";
 import logo from "./logo.svg";
 
 const useStyles = makeStyles((theme: Theme) => ({
   root: {
+    backgroundColor: "lightgray",
+    position: "absolute",
+    bottom: 0,
+    width: "100%",
+    height: "5rem",
     overflow: "hidden",
   },
   close: {
@@ -26,22 +33,24 @@ const useStyles = makeStyles((theme: Theme) => ({
     fontSize: 35,
     fontWeight: "bold",
   },
+  header: {
+    marginBottom: 100,
+  },
   sectionHeader: {
     fontSize: 28,
     fontWeight: "bold",
   },
   appBar: {
-    width: "95vw",
+    width: "100vw",
     color: theme.palette.primary.contrastText,
+    margin: theme.spacing(1),
   },
   leftSide: {
     marginLeft: "auto",
   },
   logo: {
-    width: 250,
-    height: 187.5,
-    marginBottom: -30,
-    marginTop: -30
+    width: 50,
+    height: 50,
   },
   signInButton: {
     marginLeft: "auto",
@@ -49,21 +58,20 @@ const useStyles = makeStyles((theme: Theme) => ({
   },
 }));
 
-function HeaderBar() {
+function FooterBar() {
   const classes = useStyles();
 
   return (
-    <Grid className={classes.root} container direction="column" wrap="nowrap">
-      <Grid item>
-        <Toolbar className={classes.appBar}>
-          <img alt={"logo"} src={logo} className={classes.logo}/>
-          <Button variant="contained" color="primary" className={classes.signInButton}>
-            Sign In
-          </Button>
-        </Toolbar>
-      </Grid>
+    <Grid className={classes.root} container justify="center">
+      <Toolbar className={classes.appBar}>
+        <Grid item xs>
+          <Typography>
+            Copyright © 2021 JQuant | <a href="/">Terms & Conditions</a>
+          </Typography>
+        </Grid>
+      </Toolbar>
     </Grid>
   );
 }
 
-export default HeaderBar;
+export default FooterBar;

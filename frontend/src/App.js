@@ -16,6 +16,7 @@ import { Route, Switch } from "react-router";
 import { BrowserRouter } from "react-router-dom";
 import DashboardView from "./DashboardView";
 import HeaderBar from "./HeaderBar";
+import FooterBar from "./FooterBar";
 
 function App() {
   const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
@@ -24,7 +25,7 @@ function App() {
     () =>
       createMuiTheme({
         palette: {
-          type: "dark",
+          type: "light",
           primary: {
             light: "#A9FF8B",
             main: "#00C805",
