@@ -201,6 +201,16 @@ function OptionGraph({
           data={data}
           markers={[
             {
+              axis: 'x',
+              value: clickEvent.data && clickEvent.data.x,
+              lineStyle: { stroke: theme.palette.type === "light" ? "black" : "white", strokeWidth: 1, strokeDasharray: "3 3" },
+            },
+            {
+              axis: 'y',
+              value: clickEvent.data && clickEvent.data.y,
+              lineStyle: { stroke: theme.palette.type === "light" ? "black" : "white", strokeWidth: 1, strokeDasharray: "3 3" },
+            },
+            {
                 axis: 'y',
                 value: 0,
                 lineStyle: { stroke: theme.palette.type === "light" ? "black" : "white", strokeWidth: 1 },
