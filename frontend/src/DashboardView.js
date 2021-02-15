@@ -299,6 +299,7 @@ function DashboardView() {
                 currPrice={symbolPrice}
                 chosenOptionChain={chosenOptionChain}
                 gainOrLoss={gainOrLoss}
+                callsOrPuts={callsOrPuts}
                 isSelected={(opt) => {
                   setSelectedOption(opt);
                 }}

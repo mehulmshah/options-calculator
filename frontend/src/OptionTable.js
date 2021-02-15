@@ -45,6 +45,11 @@ const useStyles = makeStyles((theme: Theme) => ({
   dialog: {
     margin: theme.spacing(1),
   },
+  note: {
+    fontStyle: "italic",
+    margin: theme.spacing(1),
+    fontSize: 14,
+  },
   tableRowLightMode: {
     "&.Mui-selected, &.Mui-selected:hover": {
       backgroundColor: ({ gainOrLoss }) => gainOrLoss + "4D",
@@ -100,6 +105,7 @@ interface OptionTableProps {
   currPrice: number;
   chosenOptionChain: any;
   gainOrLoss: string;
+  callsOrPuts: string;
   isSelected: (selected) => void;
   overrideConfig: (config) => void;
 }
@@ -109,6 +115,7 @@ function OptionTable({
   currPrice,
   chosenOptionChain,
   gainOrLoss,
+  callsOrPuts,
   isSelected,
   overrideConfig,
 }: OptionTableProps) {
@@ -120,6 +127,10 @@ function OptionTable({
   const [quantity, setQuantity] = React.useState(1);
   const [price, setPrice] = React.useState(0);
   const [greekVals, setGreekVals] = React.useState({});
+
+  const currencyFormat = (num) => {
+    return '$' + num.toFixed(2).replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,')
+  };
 
   const displayCallOptions = () => {
     return chosenOptionChain
@@ -180,15 +191,47 @@ function OptionTable({
       timeDiff,
       option.impliedVolatility,
       0.04,
-      "call"
+      callsOrPuts
+    );
+    let gamma = greeks.getGamma(
+      currPrice,
+      option.strike,
+      timeDiff,
+      option.impliedVolatility,
+      0.04,
+      callsOrPuts
+    );
+    let theta = greeks.getTheta(
+      currPrice,
+      option.strike,
+      timeDiff,
+      option.impliedVolatility,
+      0.04,
+      callsOrPuts
+    );
+    let vega = greeks.getVega(
+      currPrice,
+      option.strike,
+      timeDiff,
+      option.impliedVolatility,
+      0.04,
+      callsOrPuts
+    );
+    let rho = greeks.getRho(
+      currPrice,
+      option.strike,
+      timeDiff,
+      option.impliedVolatility,
+      0.04,
+      callsOrPuts
     );
 
     setGreekVals({
       delta: delta.toFixed(2),
-      gamma: delta.toFixed(2),
-      theta: delta.toFixed(2),
-      vega: delta.toFixed(2),
-      rho: delta.toFixed(2),
+      gamma: gamma.toFixed(2),
+      theta: theta.toFixed(2),
+      vega: vega.toFixed(2),
+      rho: rho.toFixed(2),
     });
   };
 
@@ -247,12 +290,12 @@ function OptionTable({
               obligation</span>, to purchase <span className={classes.underlinedAsset}>
               {100*quantity}</span> shares of <span className={classes.underlinedGainOrLoss}>
               {symbol}</span> at a price of <span className={classes.underlinedAsset}>
-              ${selected.strike}</span> per share, on or before <span className={classes.underlined}>
+              {currencyFormat(selected.strike)}</span> per share, on or before <span className={classes.underlined}>
               {moment.unix(selected.expiration).add(1, 'day').format('MMMM Do, YYYY')}</span>.
             </Typography>
             <Typography className={classes.dialog}>
               This contract will cost you <span className={classes.underlinedAsset}>
-              ${price > 0 ? price*100*quantity : selected.lastPrice*100*quantity}</span> total.
+              {currencyFormat(price > 0 ? price*100*quantity : selected.lastPrice*100*quantity)}</span> total.
             </Typography>
             <Grid container alignItems="center" justify="flex-start" className={classes.extraspace}>
               <Grid item xs={1}>
@@ -295,22 +338,21 @@ function OptionTable({
               fullWidth
             />
           </Grid>
-          <Grid item>
-            <Typography>
-            </Typography>
-          </Grid>
+
         </Grid>
-        <Grid container justify="center">
+        <Grid container justify="center" className={classes.dialog}>
           <Grid item xs={12}>
             <Table>
-              <TableBody>
+              <TableHead>
                 <TableRow>
-                  <TableCell align='right'>Delta</TableCell>
-                  <TableCell align='right'>Gamma</TableCell>
-                  <TableCell align='right'>Theta</TableCell>
-                  <TableCell align='right'>Vega</TableCell>
-                  <TableCell align='right'>Rho</TableCell>
+                  <TableCell style={{fontWeight: 'bolder'}} align='right'>Delta</TableCell>
+                  <TableCell style={{fontWeight: 'bolder'}} align='right'>Gamma</TableCell>
+                  <TableCell style={{fontWeight: 'bolder'}} align='right'>Theta</TableCell>
+                  <TableCell style={{fontWeight: 'bolder'}} align='right'>Vega</TableCell>
+                  <TableCell style={{fontWeight: 'bolder'}} align='right'>Rho</TableCell>
                 </TableRow>
+              </TableHead>
+              <TableBody>
                 <TableRow>
                   <TableCell align='right'>{greekVals.delta}</TableCell>
                   <TableCell align='right'>{greekVals.gamma}</TableCell>
@@ -320,6 +362,13 @@ function OptionTable({
                 </TableRow>
               </TableBody>
             </Table>
+          </Grid>
+          <Grid item>
+            <Typography className={classes.note}>
+              Note: These values are an approximation calculated from the <a
+              href="https://www.investopedia.com/terms/b/blackscholes.asp">
+              Black-Scholes</a> model and may not be 100% accurate.
+            </Typography>
           </Grid>
         </Grid>
       </DialogContent>
