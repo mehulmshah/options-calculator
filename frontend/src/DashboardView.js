@@ -6,6 +6,8 @@
  */
 
 import React from "react";
+import Autocomplete from '@material-ui/lab/Autocomplete';
+import { createFilterOptions } from '@material-ui/lab/Autocomplete';
 import {
   Button,
   ButtonGroup,
@@ -15,7 +17,6 @@ import {
   makeStyles,
   MenuItem,
   Select,
-
   TextField,
   Theme,
   Typography,
@@ -118,7 +119,16 @@ function DashboardView() {
   const [gainOrLoss, setGainOrLoss] = React.useState(GainColor);
   const [disableSearch, setDisableSearch] = React.useState(true);
   const [config, setConfig] = React.useState({quantity: 1});
+  const [filteredMatches, setFilteredMatches] = React.useState([]);
   const classes = useStyles({ gainOrLoss });
+
+  React.useEffect(() => {
+    axios
+      .get("/lookupTickers")
+      .then((response) => {
+        setFilteredMatches(response.data);
+      });
+  }, []);
 
   const handleChangeExpiration = (newExpiration) => {
     setExpiration(newExpiration);
@@ -183,6 +193,11 @@ function DashboardView() {
       });
     };
 
+  const filterOptions = createFilterOptions({
+    matchFrom: 'start',
+    stringify: option => option.ticker || option.title,
+  });
+
   return (
     <Grid className={classes.root}>
       <Grid container justify="center">
@@ -192,7 +207,6 @@ function DashboardView() {
               {/* input new ticker plus button */}
               <Grid item xs={4}>
                 <TextField
-                  className={classes.enterTicker}
                   label="Symbol Lookup"
                   placeholder="AAPL, GME, etc."
                   helperText="Enter a stock ticker and press Enter"
@@ -318,20 +332,33 @@ function DashboardView() {
           ) : (
             <Grid container justify="center">
               <Grid item>
-                <TextField
-                  autoFocus
-                  className={classes.enterTicker}
-                  label="Symbol Lookup"
-                  placeholder="AAPL, GME, etc."
-                  helperText="Enter a stock ticker and press Enter"
-                  value={symbolSearch}
-                  onChange={(e) => setSymbolSearch(e.target.value)}
-                  onKeyPress={(e) => {
-                    if (e.key === "Enter") {
-                      handleSymbolLookup();
+                <Autocomplete
+                  open={symbolSearch.length > 3}
+                  filterOptions={filterOptions}
+                  options={filteredMatches}
+                  getOptionLabel={option => {
+                    if (option) {
+                      return option.ticker + " - " + option.title
+                    } else {
+                      return "test";
                     }
+
                   }}
-                  fullWidth={true}
+                  style={{ width: 300 }}
+                  renderInput={params => (
+                    <TextField {...params}
+                      label="Symbol Lookup"
+                      placeholder="AAPL, GME, etc."
+                      helperText="Enter a stock ticker and press Enter"
+                      onKeyPress={(e) => {
+                        if (e.key === "Enter") {
+                          handleSymbolLookup();
+                        }
+                      }}
+                      onChange={(e) => setSymbolSearch(e.target.value)}
+                      fullWidth={true}
+                    />
+                  )}
                 />
               </Grid>
             </Grid>

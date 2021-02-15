@@ -64,6 +64,19 @@ app.get("/test", async function (req, res) {
   res.send("This is a test");
 });
 
+app.get("/lookupTickers", async function (req, res) {
+  axios
+    .get("https://www.sec.gov/files/company_tickers.json")
+    .then((response) => {
+      res.status(200);
+      dataArr = Object.keys(response.data).map(function(key) { return response.data[key] })
+      res.send(dataArr);
+    })
+    .catch((err) => {
+      console.log("There was an error: ", err);
+      return { err: err };
+    });
+});
 // All other routes are authenticated & served from static files
 if (process.env.NODE_ENV === "production") {
   app.get('*', (req, res) => {
