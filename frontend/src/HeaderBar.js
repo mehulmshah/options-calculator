@@ -34,6 +34,7 @@ const useStyles = makeStyles((theme: Theme) => ({
   },
   appBar: {
     width: "95vw",
+    height: 100,
     color: theme.palette.primary.contrastText,
   },
   leftSide: {

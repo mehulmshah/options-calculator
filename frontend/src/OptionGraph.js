@@ -30,7 +30,7 @@ const LossColor = "#FF5000";
 
 const useStyles = makeStyles((theme: Theme) => ({
   root: {
-    marginTop: 50,
+    marginTop: 20,
   },
   bold: {
     fontWeight: "bold",
@@ -62,7 +62,7 @@ const useStyles = makeStyles((theme: Theme) => ({
   },
   testContainer: {
     width: 1000,
-    height: 550,
+    height: 500,
   },
   cardHeader: {
     fontSize: 16,
@@ -293,12 +293,9 @@ function OptionGraph({
     );
   };
 
-  React.useEffect(() => {
-    console.log(clickEvent);
-  }, [clickEvent]);
   return (
     <>
-      <Grid container justify="center" spacing={3}>
+      <Grid container justify="center" spacing={4}>
         <Grid item>{generateChart()}</Grid>
         <Grid container direction="column" className={classes.root}>
           <Grid container direction="row" spacing={4}>
@@ -373,9 +370,10 @@ function OptionGraph({
                     {currencyFormat(exerciseQuantity*100*clickEvent.data.x)}</span>)
                   </Typography>
                   <Typography className={classes.dialog}>
-                    Return: <span className={classes.underlinedAsset}>
-                    {currencyFormat(exerciseQuantity*(100*clickEvent.data.x -
-                      (costPerContract*100 + 100*selectedOption.strike)))}
+                    Return: <span className={clickEvent.data.x - costPerContract - selectedOption.strike > 0 ?
+                                              classes.underlinedAsset : classes.underlinedLiability}>
+                    {currencyFormat(100*exerciseQuantity*(clickEvent.data.x -
+                    costPerContract - selectedOption.strike))}
                     </span> (<span className={classes.underlinedAsset}>
                     {currencyFormat(exerciseQuantity*100*clickEvent.data.x)}</span> - <span className={classes.underlinedLiability}>
                     {currencyFormat(exerciseQuantity*(100*costPerContract + 100*selectedOption.strike))}</span>)
@@ -423,7 +421,9 @@ function OptionGraph({
                       Get: N/A, you are just selling the contract
                     </Typography>
                     <Typography className={classes.dialog}>
-                      Return: <span className={classes.underlinedAsset}>
+                      Return: <span
+                      className={clickEvent.data.d > 0 ?
+                                classes.underlinedAsset : classes.underlinedLiability}>
                       {currencyFormat(clickEvent.data.d * sellQuantity)}</span> (
                       {(clickEvent.data.d / costPerContract).toFixed(2)}%)
                     </Typography>

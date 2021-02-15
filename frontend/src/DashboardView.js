@@ -7,6 +7,7 @@
 
 import React from "react";
 import {
+  Box,
   Button,
   ButtonGroup,
   FormControl,
@@ -15,7 +16,6 @@ import {
   makeStyles,
   MenuItem,
   Select,
-
   TextField,
   Theme,
   Typography,
@@ -27,6 +27,9 @@ import moment from "moment";
 import axios from "axios";
 import OptionTable from "./OptionTable";
 import OptionGraph from "./OptionGraph";
+import ArrowDownwardIcon from '@material-ui/icons/ArrowDownward';
+import { merge, bounce, bounceInDown } from 'react-animations';
+import { StyleSheet, css } from 'aphrodite';
 
 const GainColor = "#00C805";
 const LossColor = "#FF5000";
@@ -96,13 +99,36 @@ const useStyles = makeStyles((theme: Theme) => ({
     textAlign: "center",
     margin: "auto",
   },
+  goNext: {
+    position: "fixed",
+    bottom: 10,
+    right: 10,
+  },
+  hidden: {
+    display: "none",
+  },
 }));
+
+const bothAnim = merge(bounce, bounceInDown);
+
+const animationStyles = StyleSheet.create({
+  bounce: {
+    animationName: bothAnim,
+    animationDuration: '2s',
+    height: 60,
+    width: 50,
+    backgroundColor: "lightgreen",
+    borderRadius: 50,
+  }
+})
+
+
 
 const STATUS_OK = 200;
 const INFLATION_RATE = 0.014;
 
 function DashboardView() {
-  const { enqueueSnackbar } = useSnackbar();
+  const { closeSnackbar, enqueueSnackbar } = useSnackbar();
 
   const [expiration, setExpiration] = React.useState("");
   const [expirationDates, setExpirationDates] = React.useState([0]);
@@ -118,7 +144,12 @@ function DashboardView() {
   const [gainOrLoss, setGainOrLoss] = React.useState(GainColor);
   const [disableSearch, setDisableSearch] = React.useState(true);
   const [config, setConfig] = React.useState({quantity: 1});
+  const [hideButton, setHideButton] = React.useState(false);
   const classes = useStyles({ gainOrLoss });
+  let lookupKey = "";
+
+  const scrollTableRef = React.useRef();
+  const scrollGraphRef = React.useRef();
 
   const handleChangeExpiration = (newExpiration) => {
     setExpiration(newExpiration);
@@ -126,8 +157,11 @@ function DashboardView() {
   }
 
   const handleSymbolLookup = () => {
-    enqueueSnackbar(`Looking up ${symbolSearch.toUpperCase()}`, { variant: "info" });
+    lookupKey = enqueueSnackbar(`Looking up ${symbolSearch.toUpperCase()}`, { variant: "info" });
     getStockData();
+    setTimeout(() => {
+      closeSnackbar(lookupKey);
+    }, [1000]);
   };
 
   const getStockData = (exp = "") => {
@@ -143,6 +177,7 @@ function DashboardView() {
           let prevPrice = response.data.chart.result[0].meta.chartPreviousClose;
           setSymbolPrice(currPrice);
           setGainOrLoss(currPrice - prevPrice > 0 ? GainColor : LossColor);
+          scrollTableRef.current.scrollIntoView({behavior: "smooth"});
         }
       })
       .catch((error) => {
@@ -185,7 +220,10 @@ function DashboardView() {
       });
     };
 
+
+
   return (
+    <>
     <Grid className={classes.root}>
       <Grid container justify="center">
         <Grid item>
@@ -294,28 +332,44 @@ function DashboardView() {
                 </FormControl>
               </Grid>
               {/* options list table */}
-              <OptionTable
-                symbol={symbol}
-                currPrice={symbolPrice}
-                chosenOptionChain={chosenOptionChain}
-                gainOrLoss={gainOrLoss}
-                callsOrPuts={callsOrPuts}
-                isSelected={(opt) => {
-                  setSelectedOption(opt);
-                }}
-                overrideConfig={(newConfig) => {
-                  setConfig(newConfig);
-                }}
-              />
-            { selectedOption.strike && (
-                <OptionGraph
+                <OptionTable
                   symbol={symbol}
                   currPrice={symbolPrice}
-                  selectedOption={selectedOption}
+                  chosenOptionChain={chosenOptionChain}
+                  gainOrLoss={gainOrLoss}
                   callsOrPuts={callsOrPuts}
-                  expiration={expiration}
-                  config={config}
+                  isSelected={(opt) => {
+                    setSelectedOption(opt);
+                  }}
+                  overrideConfig={(newConfig) => {
+                    setConfig(newConfig);
+                  }}
                 />
+              <div ref={scrollTableRef}></div>
+            { selectedOption.strike && (
+                <>
+                  <OptionGraph
+                    symbol={symbol}
+                    currPrice={symbolPrice}
+                    selectedOption={selectedOption}
+                    callsOrPuts={callsOrPuts}
+                    expiration={expiration}
+                    config={config}
+                  />
+                  <div ref={scrollGraphRef}></div>
+                  <div className={hideButton ? classes.hidden : classes.goNext}>
+                    <Button
+                      className={css(animationStyles.bounce)}
+                      variant="outlined"
+                      onClick={() => {
+                        scrollGraphRef.current.scrollIntoView({behavior: "smooth"});
+                        setTimeout(() => setHideButton(true),[1000]);
+                      }}
+                    >
+                      <ArrowDownwardIcon />
+                    </Button>
+                  </div>
+                </>
               )}
             </Grid>
           ) : (
@@ -342,6 +396,7 @@ function DashboardView() {
         </Grid>
       </Grid>
     </Grid>
+    </>
   );
 }
 
