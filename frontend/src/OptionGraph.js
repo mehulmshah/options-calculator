@@ -68,7 +68,7 @@ const useStyles = makeStyles((theme: Theme) => ({
     fontSize: 16,
   },
   card: {
-    maxHeight: 500,
+    maxHeight: 600,
   }
 }));
 
@@ -151,6 +151,8 @@ function OptionGraph({
       );
       tempObj.x = i;
       tempObj.y = config.quantity * 100 *(output - costPerContract);
+      tempObj.out = output;
+      tempObj.d = 100 * (output - costPerContract);
       if (tempObj.y >= 0) {
         chartPosData.push(tempObj);
       } else {
@@ -291,6 +293,9 @@ function OptionGraph({
     );
   };
 
+  React.useEffect(() => {
+    console.log(clickEvent);
+  }, [clickEvent]);
   return (
     <>
       <Grid container justify="center" spacing={3}>
@@ -353,6 +358,7 @@ function OptionGraph({
                     onChange={(e)=>setExerciseQuantity(e.target.value)}
                     min={1}
                   />
+                  {!isNaN(parseInt(exerciseQuantity)) ? (<>
                   <Typography className={classes.dialog}>
                     Cost: <span className={classes.underlinedLiability}>
                     {currencyFormat(exerciseQuantity*(costPerContract*100 + 100*selectedOption.strike))}
@@ -374,6 +380,12 @@ function OptionGraph({
                     {currencyFormat(exerciseQuantity*100*clickEvent.data.x)}</span> - <span className={classes.underlinedLiability}>
                     {currencyFormat(exerciseQuantity*(100*costPerContract + 100*selectedOption.strike))}</span>)
                   </Typography>
+                  </>)
+                  : (
+                  <Typography className={classes.dialog}>
+                    Please enter a valid quantity!
+                  </Typography>
+                  )}
                 </>
               )}
             </CardContent>
@@ -401,7 +413,8 @@ function OptionGraph({
                       onChange={(e)=>setSellQuantity(e.target.value)}
                       min={1}
                     />
-                  <Typography className={classes.dialog}>
+                  {!isNaN(parseInt(sellQuantity)) ? (<>
+                    <Typography className={classes.dialog}>
                       Cost: <span className={classes.underlinedLiability}>
                       {currencyFormat(sellQuantity*costPerContract*100)}
                     </span> ({currencyFormat(costPerContract*100)}/ea for {sellQuantity} contract{sellQuantity>1 && 's'})
@@ -411,9 +424,15 @@ function OptionGraph({
                     </Typography>
                     <Typography className={classes.dialog}>
                       Return: <span className={classes.underlinedAsset}>
-                      {currencyFormat(clickEvent.data.y)}</span> (
-                      {(clickEvent.data.y / (sellQuantity*costPerContract*100)).toFixed(2)}%)
+                      {currencyFormat(clickEvent.data.d * sellQuantity)}</span> (
+                      {(clickEvent.data.d / costPerContract).toFixed(2)}%)
                     </Typography>
+                    </>)
+                    : (
+                    <Typography className={classes.dialog}>
+                      Please enter a valid quantity!
+                    </Typography>
+                    )}
                   </>
                 )}
               </CardContent>

@@ -135,6 +135,7 @@ function DashboardView() {
       .get("/stock?ticker=" + symbolSearch.toLowerCase())
       .then((response) => {
         if (response.status === STATUS_OK) {
+          console.log(response.data);
           setSymbol(symbolSearch.toUpperCase());
           setSymbolSearch(symbolSearch.toUpperCase());
           setDisableSearch(true);
@@ -146,7 +147,7 @@ function DashboardView() {
       })
       .catch((error) => {
         console.log(error);
-        enqueueSnackbar(`Error searching for ${symbolSearch.toUpperCase()} price`, {
+        enqueueSnackbar(`Error searching for ${symbolSearch.toUpperCase()} quote`, {
           variant: "error",
         });
       });
@@ -159,6 +160,7 @@ function DashboardView() {
       .get(endpoint)
       .then((response) => {
         if (response.status === STATUS_OK) {
+          console.log(response.data);
           let optionsJson = response.data.optionChain.result[0].options[0];
           let expDates = response.data.optionChain.result[0].expirationDates;
           setOptionChain({
@@ -175,7 +177,7 @@ function DashboardView() {
       .catch((error) => {
         console.log(error);
         enqueueSnackbar(
-          `Error searching for ${symbolSearch.toUpperCase()} options`,
+          `Error searching for ${symbolSearch.toUpperCase()}`,
           {
             variant: "error",
           }

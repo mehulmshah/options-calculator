@@ -29,6 +29,7 @@ import {
   Typography,
 } from "@material-ui/core";
 import CreateIcon from "@material-ui/icons/Create";
+import WbIncandescentOutlinedIcon from '@material-ui/icons/WbIncandescentOutlined';
 import moment from "moment";
 import greeks from "greeks";
 
@@ -86,6 +87,11 @@ const useStyles = makeStyles((theme: Theme) => ({
   },
   italics: {
     fontStyle: "italic",
+  },
+  extraspace: {
+    fontStyle: "italic",
+    marginLeft: theme.spacing(1),
+    marginTop: theme.spacing(5),
   },
 }));
 
@@ -248,6 +254,18 @@ function OptionTable({
               This contract will cost you <span className={classes.underlinedAsset}>
               ${price > 0 ? price*100*quantity : selected.lastPrice*100*quantity}</span> total.
             </Typography>
+            <Grid container alignItems="center" justify="flex-start" className={classes.extraspace}>
+              <Grid item xs={1}>
+              <WbIncandescentOutlinedIcon style={{fill: "gold", fontSize: 30}}/>
+              </Grid>
+              <Grid item xs>
+              <Typography className={classes.dialog}>
+               Use the pencil icon next to each
+              option to view more info about each option, or backfill with your
+              own personal cost & quantity data to see personalized results below.
+              </Typography>
+              </Grid>
+            </Grid>
           </CardContent>
         </Card>
       </Grid>
