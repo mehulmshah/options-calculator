@@ -437,16 +437,16 @@ function OptionGraph({
                   {currencyFormat(100*config.quantity*(clickEvent.data.x -
                   costPerContract - selectedOption.strike))}
                   </span> (<span className={classes.underlinedAsset}>
-                  {currencyFormat(exerciseQuantity*100*clickEvent.data.x)}</span> - <span className={classes.underlinedLiability}>
-                  {currencyFormat(exerciseQuantity*(100*costPerContract + 100*selectedOption.strike))}</span>)
+                  {currencyFormat(config.quantity*100*clickEvent.data.x)}</span> - <span className={classes.underlinedLiability}>
+                  {currencyFormat(config.quantity*(100*costPerContract + 100*selectedOption.strike))}</span>)
                 </Typography>
                 <Typography variant='h4' style={{marginBottom: 10, textDecoration: 'underline'}}>
                   Sell Your Options
                 </Typography>
                 <Typography paragraph>
                   Cost: <span className={classes.underlinedLiability}>
-                  {currencyFormat(sellQuantity*costPerContract*100)}
-                </span> ({currencyFormat(costPerContract*100)}/ea for {sellQuantity} contract{sellQuantity>1 && 's'})
+                  {currencyFormat(config.quantity*costPerContract*100)}
+                </span> ({currencyFormat(costPerContract*100)}/ea for {config.quantity} contract{config.quantity>1 && 's'})
                 </Typography>
                 <Typography paragraph>
                   Get: N/A, you are just selling the contract
@@ -455,7 +455,7 @@ function OptionGraph({
                   Return: <span
                   className={clickEvent.data.d > 0 ?
                             classes.underlinedAsset : classes.underlinedLiability}>
-                  {currencyFormat(clickEvent.data.d * sellQuantity)}</span> (
+                  {currencyFormat(clickEvent.data.d * config.quantity)}</span> (
                   {(clickEvent.data.d / costPerContract).toFixed(2)}%)
                 </Typography>
               </>
