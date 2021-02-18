@@ -360,7 +360,7 @@ function OptionGraph({
                   </HtmlTooltip>
                 </Grid>
                 <Grid item xs>
-                  <Typography id="range-slider" gutterBottom>
+                  <Typography id="range-slider" gutterBottom variant='h6'>
                     Stock Price Axis Range: ± {stockRange}%
                   </Typography>
                 </Grid>
@@ -377,12 +377,12 @@ function OptionGraph({
             <Grid item style={{width: "95%"}}>
               <Grid container alignItems="stretch" justify="flex-start">
                 <Grid item xs={1}>
-                  <HtmlTooltip title="Adjust to see your option's value on different days" placement="top-start">
+                  <HtmlTooltip title="Adjust to see your option's value on different days until expiration" placement="top-start">
                     <InfoOutlinedIcon />
                   </HtmlTooltip>
                 </Grid>
                 <Grid item xs>
-                  <Typography id="date-slider" gutterBottom>
+                  <Typography id="date-slider" gutterBottom variant='h6'>
                     Date: {daysInFuture < 1 ? "Today" : `+${Math.floor(daysInFuture)} days`} ({moment().add(Math.floor(daysInFuture), "days").format("MMM Do")})
                   </Typography>
                 </Grid>
