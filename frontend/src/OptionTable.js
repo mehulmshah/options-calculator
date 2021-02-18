@@ -17,6 +17,7 @@ import {
   DialogContent,
   Grid,
   makeStyles,
+  withStyles,
   Paper,
   Table,
   TableBody,
@@ -26,10 +27,12 @@ import {
   TableRow,
   TextField,
   Theme,
+  Tooltip,
   Typography,
 } from "@material-ui/core";
 import CreateIcon from "@material-ui/icons/Create";
 import WbIncandescentOutlinedIcon from '@material-ui/icons/WbIncandescentOutlined';
+import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
 import moment from "moment";
 import greeks from "greeks";
 
@@ -100,6 +103,16 @@ const useStyles = makeStyles((theme: Theme) => ({
   },
 }));
 
+const HtmlTooltip = withStyles((theme) => ({
+  tooltip: {
+    backgroundColor: '#f5f5f9',
+    color: 'rgba(0, 0, 0, 0.87)',
+    maxWidth: 350,
+    fontSize: theme.typography.pxToRem(14),
+    border: '1px solid #dadde9',
+  },
+}))(Tooltip);
+
 interface OptionTableProps {
   symbol: string;
   currPrice: number;
@@ -155,9 +168,6 @@ function OptionTable({
               {sign + Math.abs(opt.percentChange).toFixed(2)}%
             </TableCell>
             <TableCell>
-              {sign}${Math.abs(opt.change).toFixed(2)}
-            </TableCell>
-            <TableCell>
               <Button
                 className={classes.test}
                 variant={
@@ -166,15 +176,6 @@ function OptionTable({
               >
                 ${opt.lastPrice.toFixed(2)}
               </Button>
-            </TableCell>
-            <TableCell>
-              <CreateIcon
-                onClick={()=> {
-                  calculateGreeks(opt);
-                  setPrice(opt.lastPrice);
-                  setConfigDialogState(true);
-                }}
-              />
             </TableCell>
           </TableRow>
         );
@@ -259,12 +260,68 @@ function OptionTable({
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell>Strike Price</TableCell>
-                <TableCell>Break Even</TableCell>
-                <TableCell>% Change</TableCell>
-                <TableCell>Change</TableCell>
-                <TableCell>Price</TableCell>
-                <TableCell>Edit</TableCell>
+                <TableCell>
+                  <Grid container alignItems="stretch" justify="flex-start">
+                    <Grid item xs={2}>
+                      <HtmlTooltip
+                        placement="top"
+                        title="The price at which you may buy shares of the stock if you choose to exercise the option"
+                      >
+                        <InfoOutlinedIcon />
+                      </HtmlTooltip>
+                    </Grid>
+                    <Grid item xs>
+                      Strike Price
+                    </Grid>
+                  </Grid>
+                </TableCell>
+                <TableCell>
+                  <Grid container alignItems="stretch">
+                    <Grid item xs={2}>
+                      <HtmlTooltip
+                        placement="top"
+                        title="The price of the stock at which your profit is $0, if you choose to exercise the option.
+                        It is simply the strike price plus the cost of the contract."
+                      >
+                        <InfoOutlinedIcon />
+                      </HtmlTooltip>
+                    </Grid>
+                    <Grid item xs>
+                      Break Even
+                    </Grid>
+                  </Grid>
+                </TableCell>
+                <TableCell>
+                  <Grid container alignItems="stretch">
+                    <Grid item xs={2}>
+                      <HtmlTooltip
+                        placement="top"
+                        title="The % change in the price of the option from the previous trading day."
+                      >
+                        <InfoOutlinedIcon />
+                      </HtmlTooltip>
+                    </Grid>
+                    <Grid item xs>
+                      % Change
+                    </Grid>
+                  </Grid>
+                </TableCell>
+                <TableCell>
+                  <Grid container alignItems="stretch" justify="flex-start">
+                    <Grid item xs={2}>
+                      <HtmlTooltip
+                        placement="top"
+                        title="The current price of the option contract. Because the contract is for 100 shares, you must pay
+                        100 times this price to own the contract."
+                      >
+                        <InfoOutlinedIcon />
+                      </HtmlTooltip>
+                    </Grid>
+                    <Grid item xs>
+                      Price
+                    </Grid>
+                  </Grid>
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>{displayCallOptions()}</TableBody>
@@ -303,10 +360,22 @@ function OptionTable({
               </Grid>
               <Grid item xs>
               <Typography className={classes.dialog}>
-               Use the pencil icon next to each
-              option to view more info about each option, or backfill with your
-              own personal cost & quantity data to see personalized results below.
+               Use the pencil icon below to backfill with your own personal
+               cost & quantity data to see personalized results below.
               </Typography>
+              </Grid>
+            </Grid>
+            <Grid container alignItems="center" justify="flex-start" className={classes.extraspace}>
+              <Grid item xs={1}>
+              <CreateIcon
+                style={{fontSize: 30}}
+                onClick={() => {
+                  calculateGreeks(selected);
+                  setConfigDialogState(true);
+                }}
+              />
+              </Grid>
+              <Grid item xs>
               </Grid>
             </Grid>
           </CardContent>
@@ -316,7 +385,8 @@ function OptionTable({
     </Grid>
     <Dialog open={configDialogState} className={classes.spacing}>
       <DialogTitle>
-          {moment.unix(selected.expiration).format('M/D/YY')} ${selected.strike} Call
+        {symbol} {moment.unix(selected.expiration).add(1, 'day').format('M/D')} $
+        {selected.strike}c
       </DialogTitle>
       <DialogContent>
         <Grid container>

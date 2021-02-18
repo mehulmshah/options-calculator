@@ -14,10 +14,12 @@ import {
   Grid,
   InputLabel,
   makeStyles,
+  withStyles,
   MenuItem,
   Select,
   TextField,
   Theme,
+  Tooltip,
   Typography,
 } from "@material-ui/core";
 import CreateIcon from "@material-ui/icons/Create";
@@ -106,8 +108,18 @@ const useStyles = makeStyles((theme: Theme) => ({
   },
   hidden: {
     display: "none",
-  },
+  }
 }));
+
+const HtmlTooltip = withStyles((theme) => ({
+  tooltip: {
+    backgroundColor: '#f5f5f9',
+    color: 'rgba(0, 0, 0, 0.87)',
+    maxWidth: 350,
+    fontSize: theme.typography.pxToRem(14),
+    border: '1px solid #dadde9',
+  },
+}))(Tooltip);
 
 const bothAnim = merge(bounce, bounceInDown);
 
@@ -232,6 +244,7 @@ function DashboardView() {
               {/* input new ticker plus button */}
               <Grid item xs={4}>
                 <TextField
+                  inputRef={input => input && !disableSearch && input.focus()}
                   className={classes.enterTicker}
                   label="Symbol Lookup"
                   placeholder="AAPL, GME, etc."
@@ -249,9 +262,13 @@ function DashboardView() {
               </Grid>
               <Grid item xs={1}>
                 {disableSearch ?
-                  <CreateIcon
-                    onClick={() => setDisableSearch(false)}
-                  /> :
+                  <HtmlTooltip
+                    placement="top"
+                    title="Click here to enter a new stock ticker">
+                    <CreateIcon
+                      onClick={() => setDisableSearch(false)}
+                    />
+                  </HtmlTooltip> :
                   <CreateIconOutlined
                     onClick={() => setDisableSearch(true)}
                   />
@@ -269,36 +286,40 @@ function DashboardView() {
               {/* call or put button group */}
               <Grid item>
                 <ButtonGroup className={classes.buttonGroup}>
-                  <Button
-                    color="inherit"
-                    onClick={(e) => {
-                      setCallsOrPuts("call");
-                      setChosenOptionChain(optionChain.calls);
-                    }}
-                    variant="none"
-                    className={
-                      callsOrPuts === "call"
-                        ? classes.selected
-                        : classes.unSelected
-                    }
-                  >
-                    Calls
-                  </Button>
-                  <Button
-                    color="inherit"
-                    onClick={(e) => {
-                      setCallsOrPuts("put");
-                      setChosenOptionChain(optionChain.puts);
-                    }}
-                    variant="none"
-                    className={
-                      callsOrPuts === "put"
-                        ? classes.selected
-                        : classes.unSelected
-                    }
-                  >
-                    Puts
-                  </Button>
+                  <HtmlTooltip title="A Call Option means you believe the stock price will increase" placement="top">
+                    <Button
+                      color="inherit"
+                      onClick={(e) => {
+                        setCallsOrPuts("call");
+                        setChosenOptionChain(optionChain.calls);
+                      }}
+                      variant="none"
+                      className={
+                        callsOrPuts === "call"
+                          ? classes.selected
+                          : classes.unSelected
+                      }
+                    >
+                      Calls
+                    </Button>
+                  </HtmlTooltip>
+                  <HtmlTooltip title="A Put Option means you believe the stock price will decrease" placement="top">
+                    <Button
+                      color="inherit"
+                      onClick={(e) => {
+                        setCallsOrPuts("put");
+                        setChosenOptionChain(optionChain.puts);
+                      }}
+                      variant="none"
+                      className={
+                        callsOrPuts === "put"
+                          ? classes.selected
+                          : classes.unSelected
+                      }
+                    >
+                      Puts
+                    </Button>
+                  </HtmlTooltip>
                 </ButtonGroup>
               </Grid>
               {/* expiration select dropdown */}
