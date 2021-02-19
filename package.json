@@ -10,7 +10,7 @@
   },
   "nodemonConfig": {
     "watch": [
-      "src"
+      "./"
     ],
     "ext": "js",
     "exec": "yarn start"

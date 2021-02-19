@@ -6,6 +6,8 @@
  */
 
 import React from "react";
+import Autocomplete from '@material-ui/lab/Autocomplete';
+import { createFilterOptions } from '@material-ui/lab/Autocomplete';
 import {
   Box,
   Button,
@@ -32,6 +34,8 @@ import OptionGraph from "./OptionGraph";
 import ArrowDownwardIcon from '@material-ui/icons/ArrowDownward';
 import { merge, bounce, bounceInDown } from 'react-animations';
 import { StyleSheet, css } from 'aphrodite';
+import parse from 'autosuggest-highlight/parse';
+import match from 'autosuggest-highlight/match';
 
 const GainColor = "#00C805";
 const LossColor = "#FF5000";
@@ -134,8 +138,6 @@ const animationStyles = StyleSheet.create({
   }
 })
 
-
-
 const STATUS_OK = 200;
 const INFLATION_RATE = 0.014;
 
@@ -156,12 +158,21 @@ function DashboardView() {
   const [gainOrLoss, setGainOrLoss] = React.useState(GainColor);
   const [disableSearch, setDisableSearch] = React.useState(true);
   const [config, setConfig] = React.useState({quantity: 1});
+  const [filteredMatches, setFilteredMatches] = React.useState([]);
   const [hideButton, setHideButton] = React.useState(false);
   const classes = useStyles({ gainOrLoss });
   let lookupKey = "";
 
   const scrollTableRef = React.useRef();
   const scrollGraphRef = React.useRef();
+
+  React.useEffect(() => {
+    axios
+      .get("/lookupTickers")
+      .then((response) => {
+        setFilteredMatches(response.data);
+      });
+  }, []);
 
   const handleChangeExpiration = (newExpiration) => {
     setExpiration(newExpiration);
@@ -232,7 +243,33 @@ function DashboardView() {
       });
     };
 
+  const filterOptions = createFilterOptions({
+    matchFrom: 'start',
+    stringify: option => option.ticker || option.title,
+  });
 
+  const capitalize = (word) => {
+    let capitalized = word.toLowerCase()
+    .split(' ')
+    .map((s) => s.charAt(0).toUpperCase() + s.substring(1))
+    .join(' ');
+
+    var uselessWordsArray =
+        ["inc", "ltd", "corp", "de"];
+
+	  var expStr = uselessWordsArray.join("|");
+	  return capitalized.replace(new RegExp('\\b(' + expStr + ')\\b', 'gi'), ' ')
+                      .replace(/\s{2,}/g, ' ')
+                      .replace('.','')
+                      .replace(',','')
+                      .replace('/','')
+                      .replace('\\','');
+
+  }
+
+  React.useEffect(() => {
+    console.log(symbolSearch);
+  }, [symbolSearch]);
 
   return (
     <>
@@ -244,8 +281,6 @@ function DashboardView() {
               {/* input new ticker plus button */}
               <Grid item xs={4}>
                 <TextField
-                  inputRef={input => input && !disableSearch && input.focus()}
-                  className={classes.enterTicker}
                   label="Symbol Lookup"
                   placeholder="AAPL, GME, etc."
                   helperText="Enter a stock ticker and press Enter"
@@ -396,20 +431,33 @@ function DashboardView() {
           ) : (
             <Grid container justify="center">
               <Grid item>
-                <TextField
-                  autoFocus
-                  className={classes.enterTicker}
-                  label="Symbol Lookup"
-                  placeholder="AAPL, GME, etc."
-                  helperText="Enter a stock ticker and press Enter"
-                  value={symbolSearch}
-                  onChange={(e) => setSymbolSearch(e.target.value)}
-                  onKeyPress={(e) => {
-                    if (e.key === "Enter") {
-                      handleSymbolLookup();
-                    }
+                <Autocomplete
+                  style={{ width: 500 }}
+                  options={filteredMatches}
+                  getOptionLabel={(option) => option.ticker + " - " + capitalize(option.title)}
+                  renderInput={(params) => (
+                    <TextField {...params}
+                      label="Stock Lookup" variant="outlined" margin="normal"
+                      placeholder="AAPL, GME, etc."
+                      helperText="Enter a stock ticker and press Enter"
+                      value={symbolSearch}
+                      onChange={(e) => setSymbolSearch(e.target.value)}
+                    />
+                  )}
+                  renderOption={(option, { inputValue }) => {
+                    let input = option.ticker + " - " + capitalize(option.title);
+                    const matches = match(input, inputValue);
+                    const parts = parse(input, matches);
+                    return (
+                      <div>
+                        {parts.map((part, index) => (
+                          <span key={index} style={{ color: part.highlight ? GainColor : "black" }}>
+                            {part.text}
+                          </span>
+                        ))}
+                      </div>
+                    );
                   }}
-                  fullWidth={true}
                 />
               </Grid>
             </Grid>
