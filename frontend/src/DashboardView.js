@@ -9,16 +9,19 @@ import React from "react";
 import Autocomplete from '@material-ui/lab/Autocomplete';
 import { createFilterOptions } from '@material-ui/lab/Autocomplete';
 import {
+  Box,
   Button,
   ButtonGroup,
   FormControl,
   Grid,
   InputLabel,
   makeStyles,
+  withStyles,
   MenuItem,
   Select,
   TextField,
   Theme,
+  Tooltip,
   Typography,
 } from "@material-ui/core";
 import CreateIcon from "@material-ui/icons/Create";
@@ -28,6 +31,9 @@ import moment from "moment";
 import axios from "axios";
 import OptionTable from "./OptionTable";
 import OptionGraph from "./OptionGraph";
+import ArrowDownwardIcon from '@material-ui/icons/ArrowDownward';
+import { merge, bounce, bounceInDown } from 'react-animations';
+import { StyleSheet, css } from 'aphrodite';
 
 const GainColor = "#00C805";
 const LossColor = "#FF5000";
@@ -97,13 +103,46 @@ const useStyles = makeStyles((theme: Theme) => ({
     textAlign: "center",
     margin: "auto",
   },
+  goNext: {
+    position: "fixed",
+    bottom: 10,
+    right: 10,
+  },
+  hidden: {
+    display: "none",
+  }
 }));
+
+const HtmlTooltip = withStyles((theme) => ({
+  tooltip: {
+    backgroundColor: '#f5f5f9',
+    color: 'rgba(0, 0, 0, 0.87)',
+    maxWidth: 350,
+    fontSize: theme.typography.pxToRem(14),
+    border: '1px solid #dadde9',
+  },
+}))(Tooltip);
+
+const bothAnim = merge(bounce, bounceInDown);
+
+const animationStyles = StyleSheet.create({
+  bounce: {
+    animationName: bothAnim,
+    animationDuration: '2s',
+    height: 60,
+    width: 50,
+    backgroundColor: "lightgreen",
+    borderRadius: 50,
+  }
+})
+
+
 
 const STATUS_OK = 200;
 const INFLATION_RATE = 0.014;
 
 function DashboardView() {
-  const { enqueueSnackbar } = useSnackbar();
+  const { closeSnackbar, enqueueSnackbar } = useSnackbar();
 
   const [expiration, setExpiration] = React.useState("");
   const [expirationDates, setExpirationDates] = React.useState([0]);
@@ -120,7 +159,12 @@ function DashboardView() {
   const [disableSearch, setDisableSearch] = React.useState(true);
   const [config, setConfig] = React.useState({quantity: 1});
   const [filteredMatches, setFilteredMatches] = React.useState([]);
+  const [hideButton, setHideButton] = React.useState(false);
   const classes = useStyles({ gainOrLoss });
+  let lookupKey = "";
+
+  const scrollTableRef = React.useRef();
+  const scrollGraphRef = React.useRef();
 
   React.useEffect(() => {
     axios
@@ -136,8 +180,11 @@ function DashboardView() {
   }
 
   const handleSymbolLookup = () => {
-    enqueueSnackbar(`Looking up ${symbolSearch.toUpperCase()}`, { variant: "info" });
+    lookupKey = enqueueSnackbar(`Looking up ${symbolSearch.toUpperCase()}`, { variant: "info" });
     getStockData();
+    setTimeout(() => {
+      closeSnackbar(lookupKey);
+    }, [1000]);
   };
 
   const getStockData = (exp = "") => {
@@ -145,6 +192,7 @@ function DashboardView() {
       .get("/stock?ticker=" + symbolSearch.toLowerCase())
       .then((response) => {
         if (response.status === STATUS_OK) {
+          console.log(response.data);
           setSymbol(symbolSearch.toUpperCase());
           setSymbolSearch(symbolSearch.toUpperCase());
           setDisableSearch(true);
@@ -152,11 +200,12 @@ function DashboardView() {
           let prevPrice = response.data.chart.result[0].meta.chartPreviousClose;
           setSymbolPrice(currPrice);
           setGainOrLoss(currPrice - prevPrice > 0 ? GainColor : LossColor);
+          scrollTableRef.current.scrollIntoView({behavior: "smooth"});
         }
       })
       .catch((error) => {
         console.log(error);
-        enqueueSnackbar(`Error searching for ${symbolSearch.toUpperCase()} price`, {
+        enqueueSnackbar(`Error searching for ${symbolSearch.toUpperCase()} quote`, {
           variant: "error",
         });
       });
@@ -169,6 +218,7 @@ function DashboardView() {
       .get(endpoint)
       .then((response) => {
         if (response.status === STATUS_OK) {
+          console.log(response.data);
           let optionsJson = response.data.optionChain.result[0].options[0];
           let expDates = response.data.optionChain.result[0].expirationDates;
           setOptionChain({
@@ -185,7 +235,7 @@ function DashboardView() {
       .catch((error) => {
         console.log(error);
         enqueueSnackbar(
-          `Error searching for ${symbolSearch.toUpperCase()} options`,
+          `Error searching for ${symbolSearch.toUpperCase()}`,
           {
             variant: "error",
           }
@@ -199,6 +249,7 @@ function DashboardView() {
   });
 
   return (
+    <>
     <Grid className={classes.root}>
       <Grid container justify="center">
         <Grid item>
@@ -223,9 +274,13 @@ function DashboardView() {
               </Grid>
               <Grid item xs={1}>
                 {disableSearch ?
-                  <CreateIcon
-                    onClick={() => setDisableSearch(false)}
-                  /> :
+                  <HtmlTooltip
+                    placement="top"
+                    title="Click here to enter a new stock ticker">
+                    <CreateIcon
+                      onClick={() => setDisableSearch(false)}
+                    />
+                  </HtmlTooltip> :
                   <CreateIconOutlined
                     onClick={() => setDisableSearch(true)}
                   />
@@ -243,36 +298,40 @@ function DashboardView() {
               {/* call or put button group */}
               <Grid item>
                 <ButtonGroup className={classes.buttonGroup}>
-                  <Button
-                    color="inherit"
-                    onClick={(e) => {
-                      setCallsOrPuts("call");
-                      setChosenOptionChain(optionChain.calls);
-                    }}
-                    variant="none"
-                    className={
-                      callsOrPuts === "call"
-                        ? classes.selected
-                        : classes.unSelected
-                    }
-                  >
-                    Calls
-                  </Button>
-                  <Button
-                    color="inherit"
-                    onClick={(e) => {
-                      setCallsOrPuts("put");
-                      setChosenOptionChain(optionChain.puts);
-                    }}
-                    variant="none"
-                    className={
-                      callsOrPuts === "put"
-                        ? classes.selected
-                        : classes.unSelected
-                    }
-                  >
-                    Puts
-                  </Button>
+                  <HtmlTooltip title="A Call Option means you believe the stock price will increase" placement="top">
+                    <Button
+                      color="inherit"
+                      onClick={(e) => {
+                        setCallsOrPuts("call");
+                        setChosenOptionChain(optionChain.calls);
+                      }}
+                      variant="none"
+                      className={
+                        callsOrPuts === "call"
+                          ? classes.selected
+                          : classes.unSelected
+                      }
+                    >
+                      Calls
+                    </Button>
+                  </HtmlTooltip>
+                  <HtmlTooltip title="A Put Option means you believe the stock price will decrease" placement="top">
+                    <Button
+                      color="inherit"
+                      onClick={(e) => {
+                        setCallsOrPuts("put");
+                        setChosenOptionChain(optionChain.puts);
+                      }}
+                      variant="none"
+                      className={
+                        callsOrPuts === "put"
+                          ? classes.selected
+                          : classes.unSelected
+                      }
+                    >
+                      Puts
+                    </Button>
+                  </HtmlTooltip>
                 </ButtonGroup>
               </Grid>
               {/* expiration select dropdown */}
@@ -306,27 +365,44 @@ function DashboardView() {
                 </FormControl>
               </Grid>
               {/* options list table */}
-              <OptionTable
-                symbol={symbol}
-                currPrice={symbolPrice}
-                chosenOptionChain={chosenOptionChain}
-                gainOrLoss={gainOrLoss}
-                isSelected={(opt) => {
-                  setSelectedOption(opt);
-                }}
-                overrideConfig={(newConfig) => {
-                  setConfig(newConfig);
-                }}
-              />
-            { selectedOption.strike && (
-                <OptionGraph
+                <OptionTable
                   symbol={symbol}
                   currPrice={symbolPrice}
-                  selectedOption={selectedOption}
+                  chosenOptionChain={chosenOptionChain}
+                  gainOrLoss={gainOrLoss}
                   callsOrPuts={callsOrPuts}
-                  expiration={expiration}
-                  config={config}
+                  isSelected={(opt) => {
+                    setSelectedOption(opt);
+                  }}
+                  overrideConfig={(newConfig) => {
+                    setConfig(newConfig);
+                  }}
                 />
+              <div ref={scrollTableRef}></div>
+            { selectedOption.strike && (
+                <>
+                  <OptionGraph
+                    symbol={symbol}
+                    currPrice={symbolPrice}
+                    selectedOption={selectedOption}
+                    callsOrPuts={callsOrPuts}
+                    expiration={expiration}
+                    config={config}
+                  />
+                  <div ref={scrollGraphRef}></div>
+                  <div className={hideButton ? classes.hidden : classes.goNext}>
+                    <Button
+                      className={css(animationStyles.bounce)}
+                      variant="outlined"
+                      onClick={() => {
+                        scrollGraphRef.current.scrollIntoView({behavior: "smooth"});
+                        setTimeout(() => setHideButton(true),[1000]);
+                      }}
+                    >
+                      <ArrowDownwardIcon />
+                    </Button>
+                  </div>
+                </>
               )}
             </Grid>
           ) : (
@@ -366,6 +442,7 @@ function DashboardView() {
         </Grid>
       </Grid>
     </Grid>
+    </>
   );
 }
 

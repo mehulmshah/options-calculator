@@ -8,8 +8,10 @@
 import React from "react";
 import {
   Card,
+  CardActions,
   CardContent,
   CardHeader,
+  Collapse,
   Grid,
   makeStyles,
   withStyles,
@@ -20,6 +22,9 @@ import {
   Theme,
   Typography,
 } from "@material-ui/core";
+import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
+import ExpandLessIcon from '@material-ui/icons/ExpandLess';
+import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
 import moment from "moment";
 import blackScholes from "black-scholes";
 import { ResponsiveLine } from '@nivo/line';
@@ -30,7 +35,7 @@ const LossColor = "#FF5000";
 
 const useStyles = makeStyles((theme: Theme) => ({
   root: {
-    marginTop: 50,
+    marginTop: 20,
   },
   bold: {
     fontWeight: "bold",
@@ -60,16 +65,17 @@ const useStyles = makeStyles((theme: Theme) => ({
   italics: {
     fontStyle: "italic",
   },
-  testContainer: {
-    width: 1000,
+  graphContainer: {
+    width: "90%",
     height: 550,
   },
   cardHeader: {
     fontSize: 16,
   },
-  card: {
-    maxHeight: 500,
-  }
+  topBotSpacing: {
+    marginTop: theme.spacing(1),
+    marginBottom: theme.spacing(1),
+  },
 }));
 
 const StyledSlider = withStyles({
@@ -100,6 +106,16 @@ const StyledSlider = withStyles({
   }
 })(Slider);
 
+const HtmlTooltip = withStyles((theme) => ({
+  tooltip: {
+    backgroundColor: '#f5f5f9',
+    color: 'rgba(0, 0, 0, 0.87)',
+    maxWidth: 350,
+    fontSize: theme.typography.pxToRem(14),
+    border: '1px solid #dadde9',
+  },
+}))(Tooltip);
+
 interface OptionGraphProps {
   symbol: string;
   currPrice: number;
@@ -125,6 +141,7 @@ function OptionGraph({
   const [clickEvent, setClickEvent] = React.useState({});
   const [exerciseQuantity, setExerciseQuantity] = React.useState(config.quantity);
   const [sellQuantity, setSellQuantity] = React.useState(config.quantity);
+  const [expanded, setExpanded] = React.useState(false);
   const daysUntilExpiration = Math.abs(moment().diff(moment.unix(expiration).utc(), "days")) + 1;
   const costPerContract = config.avgCost ? config.avgCost : selectedOption.lastPrice;
 
@@ -134,8 +151,9 @@ function OptionGraph({
 
   const generateChart = () => {
     let timeDiffInYears = (
-      Math.abs(moment().diff(moment.unix(expiration).utc(), "days")) + 1 + daysInFuture) /
+      Math.abs(moment().diff(moment.unix(expiration).utc(), "days")) - (daysInFuture)) /
       365;
+    timeDiffInYears = timeDiffInYears < 0 ? 0 : timeDiffInYears;
     let chartPosData = [];
     let chartNegData = [];
     let adder = stockRange / 100;
@@ -151,6 +169,8 @@ function OptionGraph({
       );
       tempObj.x = i;
       tempObj.y = config.quantity * 100 *(output - costPerContract);
+      tempObj.out = output;
+      tempObj.d = 100 * (output - costPerContract);
       if (tempObj.y >= 0) {
         chartPosData.push(tempObj);
       } else {
@@ -196,7 +216,7 @@ function OptionGraph({
     };
 
     return (
-      <div className={classes.testContainer}>
+      <div className={classes.graphContainer}>
         <ResponsiveLine
           data={data}
           markers={[
@@ -244,7 +264,7 @@ function OptionGraph({
             // others are skipped, so now it acts as a fallback
             { match: '*', id: 'gradientGain' },
           ]}
-          margin={{ top: 50, right: 110, bottom: 70, left: 80 }}
+          margin={{ top: 50, right: 20, bottom: 80, left: 80 }}
           xScale={{ type: 'linear', min: 'auto', max: 'auto'}}
           xFormat=">-$.2f"
           yScale={{ type: 'linear', min: 'auto', max: 'auto'}}
@@ -279,11 +299,44 @@ function OptionGraph({
           crosshairType='cross'
           theme={chartTheme}
           tooltip={(input) => {
-              return (
-              <div>
-                {input.point.data.yFormatted}
-              </div>
-            )}}
+              let sellProfit = input.point.data.y;
+              let exerProfit = 100*config.quantity*(input.point.data.x -
+              costPerContract - selectedOption.strike);
+              let divOrder = sellProfit > exerProfit ?
+                (
+                  <div
+                    style={{
+                        background: 'white',
+                        padding: '9px 12px',
+                        border: '1px solid #ccc',
+                    }}
+                  >
+                    <div style={{color: sellProfit > 0 ? GainColor : LossColor}}>
+                      Sell Returns: {currencyFormat(sellProfit)}
+                    </div>
+                    <div style={{color: exerProfit > 0 ? GainColor : LossColor}}>
+                      Exercise Returns: {currencyFormat(exerProfit)}
+                    </div>
+                  </div>
+                ) :
+                (
+                  <div
+                    style={{
+                        background: 'white',
+                        padding: '9px 12px',
+                        border: '1px solid #ccc',
+                    }}
+                  >
+                    <div style={{color: exerProfit > 0 ? GainColor : LossColor}}>
+                      Exercise Returns: {currencyFormat(exerProfit)}
+                    </div>
+                    <div style={{color: sellProfit > 0 ? GainColor : LossColor}}>
+                      Sell Returns: {currencyFormat(sellProfit)}
+                    </div>
+                  </div>
+              );
+              return divOrder;
+            }}
           colors={d=>d.id === 'positive' ? GainColor : LossColor}
           onClick={(p, e)=> setClickEvent(p)}
         />
@@ -293,16 +346,25 @@ function OptionGraph({
 
   return (
     <>
-      <Grid container justify="center" spacing={3}>
-        <Grid item>{generateChart()}</Grid>
-        <Grid container direction="column" className={classes.root}>
-          <Grid container direction="row" spacing={4}>
-            <Grid item xs>
-              <Tooltip title="Adjust the range of stock prices shown in the graph" placement="top-start">
-              <Typography id="range-slider" gutterBottom>
-                Stock Price Axis Range: ± {stockRange}%
-              </Typography>
-              </Tooltip>
+      <Grid container spacing={3} className={classes.spacing} justify="center">
+        <Grid item xs={6}>
+          <Grid container direction="column" spacing={3}>
+            <Grid item>
+              {generateChart()}
+            </Grid>
+            <Grid item style={{width: "95%"}}>
+              <Grid container alignItems="stretch" justify="flex-start">
+                <Grid item xs={1}>
+                  <HtmlTooltip title="Adjust to view a wider range of potential stock prices in the graph" placement="top-start">
+                    <InfoOutlinedIcon />
+                  </HtmlTooltip>
+                </Grid>
+                <Grid item xs>
+                  <Typography id="range-slider" gutterBottom variant='h6'>
+                    Stock Price Axis Range: ± {stockRange}%
+                  </Typography>
+                </Grid>
+              </Grid>
               <StyledSlider
                 value={stockRange}
                 min={1}
@@ -312,12 +374,19 @@ function OptionGraph({
                 aria-labelledby="non-range-slider"
               />
             </Grid>
-            <Grid item xs>
-              <Tooltip title="Adjust the date" placement="top-start">
-                <Typography id="date-slider" gutterBottom>
-                  Date: {daysInFuture < 1 && "Today"} ({moment().add(Math.floor(daysInFuture), "days").format("MMM Do")})
-                </Typography>
-              </Tooltip>
+            <Grid item style={{width: "95%"}}>
+              <Grid container alignItems="stretch" justify="flex-start">
+                <Grid item xs={1}>
+                  <HtmlTooltip title="Adjust to see your option's value on different days until expiration" placement="top-start">
+                    <InfoOutlinedIcon />
+                  </HtmlTooltip>
+                </Grid>
+                <Grid item xs>
+                  <Typography id="date-slider" gutterBottom variant='h6'>
+                    Date: {daysInFuture < 1 ? "Today" : `+${Math.floor(daysInFuture)} days`} ({moment().add(Math.floor(daysInFuture), "days").format("MMM Do")})
+                  </Typography>
+                </Grid>
+              </Grid>
               <StyledSlider
                 value={daysInFutureSlider}
                 onChange={(e, nV) => {
@@ -330,95 +399,78 @@ function OptionGraph({
           </Grid>
         </Grid>
         <Grid item xs={6}>
-          <Card className={classes.card}>
+          <Card>
             <CardHeader
               classes={{
                 title: classes.CardHeader,
               }}
               titleTypographyProps={{ variant: "h5", fontStyle: "bold" }}
-              title={clickEvent.data ? (`Exercise ${exerciseQuantity} ${symbol}
-                      ${moment.unix(expiration).add(1, 'day').format('M/D')}
-                      $${selectedOption.strike}c`) :
-                    ('Click on the graph to view your potential exits')}
-              subheader={clickEvent.data && (`@ ${clickEvent.data.xFormatted}
-              on ${moment().add(daysInFuture, 'days').format("MMM D")}`)}
+              title={clickEvent.data ? (`The date is ${moment()
+                .add(daysInFuture, 'day').format('MMM Do')} // ${symbol} is at
+                ${currencyFormat(clickEvent.data.x)}`) :
+                    ('Interact with the graph to view your potential exits')}
+              subheader="Expand To See Details"
             />
+          <Collapse in={expanded && clickEvent.data} timeout="auto" unmountOnExit>
             <CardContent>
               {clickEvent.data && (
-                <>
-                  <TextField
-                    label="Quantity"
-                    helperText="How many contracts would you like to exercise"
-                    value={exerciseQuantity}
-                    onChange={(e)=>setExerciseQuantity(e.target.value)}
-                    min={1}
-                  />
-                  <Typography className={classes.dialog}>
-                    Cost: <span className={classes.underlinedLiability}>
-                    {currencyFormat(exerciseQuantity*(costPerContract*100 + 100*selectedOption.strike))}
-                  </span> ({currencyFormat(costPerContract*100)}/ea
-                   for {exerciseQuantity} contract{exerciseQuantity>1&&'s'} + {currencyFormat(exerciseQuantity*100*selectedOption.strike)} for {exerciseQuantity*100} shares
-                      @ ${selectedOption.strike}/ea)
-                  </Typography>
-                  <Typography className={classes.dialog}>
-                    Get: {exerciseQuantity*100} {symbol} shares @ ${selectedOption.strike}/ea
-                    (now worth ${clickEvent.data.x.toFixed(2)}/ea for a total
-                    of <span className={classes.underlinedAsset}>
-                    {currencyFormat(exerciseQuantity*100*clickEvent.data.x)}</span>)
-                  </Typography>
-                  <Typography className={classes.dialog}>
-                    Return: <span className={classes.underlinedAsset}>
-                    {currencyFormat(exerciseQuantity*(100*clickEvent.data.x -
-                      (costPerContract*100 + 100*selectedOption.strike)))}
-                    </span> (<span className={classes.underlinedAsset}>
-                    {currencyFormat(exerciseQuantity*100*clickEvent.data.x)}</span> - <span className={classes.underlinedLiability}>
-                    {currencyFormat(exerciseQuantity*(100*costPerContract + 100*selectedOption.strike))}</span>)
-                  </Typography>
-                </>
+              <>
+                <Typography variant='h4' style={{marginBottom: 10, textDecoration: 'underline'}}>
+                  Exercise Your Options
+                </Typography>
+                <Typography paragraph>
+                  Cost: <span className={classes.underlinedLiability}>
+                  {currencyFormat(config.quantity*(costPerContract*100 + 100*selectedOption.strike))}
+                </span> ({currencyFormat(costPerContract*100)}/ea
+                 for {config.quantity} contract{config.quantity>1&&'s'} + {currencyFormat(config.quantity*100*selectedOption.strike)} for {config.quantity*100} shares
+                    @ ${selectedOption.strike}/ea)
+                </Typography>
+                <Typography paragraph>
+                  Get: {config.quantity*100} {symbol} shares @ ${selectedOption.strike}/ea
+                  (now worth ${clickEvent.data.x.toFixed(2)}/ea for a total
+                  of <span className={classes.underlinedAsset}>
+                  {currencyFormat(config.quantity*100*clickEvent.data.x)}</span>)
+                </Typography>
+                <Typography paragraph>
+                  Return: <span className={clickEvent.data.x - costPerContract - selectedOption.strike > 0 ?
+                                            classes.underlinedAsset : classes.underlinedLiability}>
+                  {currencyFormat(100*config.quantity*(clickEvent.data.x -
+                  costPerContract - selectedOption.strike))}
+                  </span> (<span className={classes.underlinedAsset}>
+                  {currencyFormat(config.quantity*100*clickEvent.data.x)}</span> - <span className={classes.underlinedLiability}>
+                  {currencyFormat(config.quantity*(100*costPerContract + 100*selectedOption.strike))}</span>)
+                </Typography>
+                <Typography variant='h4' style={{marginBottom: 10, textDecoration: 'underline'}}>
+                  Sell Your Options
+                </Typography>
+                <Typography paragraph>
+                  Cost: <span className={classes.underlinedLiability}>
+                  {currencyFormat(config.quantity*costPerContract*100)}
+                </span> ({currencyFormat(costPerContract*100)}/ea for {config.quantity} contract{config.quantity>1 && 's'})
+                </Typography>
+                <Typography paragraph>
+                  Get: N/A, you are just selling the contract
+                </Typography>
+                <Typography paragraph>
+                  Return: <span
+                  className={clickEvent.data.d > 0 ?
+                            classes.underlinedAsset : classes.underlinedLiability}>
+                  {currencyFormat(clickEvent.data.d * config.quantity)}</span> (
+                  {(clickEvent.data.d / costPerContract).toFixed(2)}%)
+                </Typography>
+              </>
               )}
             </CardContent>
+            </Collapse>
+            <CardActions>
+              {expanded ?
+              <ExpandLessIcon onClick={() => setExpanded(false)} />
+              :
+              <ExpandMoreIcon onClick={() => setExpanded(true)} />
+              }
+            </CardActions>
           </Card>
         </Grid>
-        <Grid item xs={6}>
-            <Card className={classes.card}>
-              <CardHeader
-                className={classes.cardHeader}
-                titleTypographyProps={{ variant: "h5", fontStyle: "bold" }}
-                title={clickEvent.data ? (`Sell ${sellQuantity} ${symbol}
-                        ${moment.unix(expiration).add(1, 'day').format('M/D')}
-                        $${selectedOption.strike}c`) :
-                      ('Click on the graph to view your potential exits')}
-                subheader={clickEvent.data && (`@ ${clickEvent.data.xFormatted}
-                on ${moment().add(daysInFuture, 'days').format("MMM D")}`)}
-              />
-            <CardContent>
-                {clickEvent.data && (
-                  <>
-                    <TextField
-                      label="Quantity"
-                      helperText="How many contracts would you like to sell"
-                      value={sellQuantity}
-                      onChange={(e)=>setSellQuantity(e.target.value)}
-                      min={1}
-                    />
-                  <Typography className={classes.dialog}>
-                      Cost: <span className={classes.underlinedLiability}>
-                      {currencyFormat(sellQuantity*costPerContract*100)}
-                    </span> ({currencyFormat(costPerContract*100)}/ea for {sellQuantity} contract{sellQuantity>1 && 's'})
-                    </Typography>
-                    <Typography className={classes.dialog}>
-                      Get: N/A, you are just selling the contract
-                    </Typography>
-                    <Typography className={classes.dialog}>
-                      Return: <span className={classes.underlinedAsset}>
-                      {currencyFormat(clickEvent.data.y)}</span> (
-                      {(clickEvent.data.y / (sellQuantity*costPerContract*100)).toFixed(2)}%)
-                    </Typography>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-          </Grid>
       </Grid>
     </>
   );

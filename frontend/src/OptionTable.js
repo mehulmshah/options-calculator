@@ -17,6 +17,7 @@ import {
   DialogContent,
   Grid,
   makeStyles,
+  withStyles,
   Paper,
   Table,
   TableBody,
@@ -26,9 +27,12 @@ import {
   TableRow,
   TextField,
   Theme,
+  Tooltip,
   Typography,
 } from "@material-ui/core";
 import CreateIcon from "@material-ui/icons/Create";
+import WbIncandescentOutlinedIcon from '@material-ui/icons/WbIncandescentOutlined';
+import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
 import moment from "moment";
 import greeks from "greeks";
 
@@ -43,6 +47,11 @@ const useStyles = makeStyles((theme: Theme) => ({
   },
   dialog: {
     margin: theme.spacing(1),
+  },
+  note: {
+    fontStyle: "italic",
+    margin: theme.spacing(1),
+    fontSize: 14,
   },
   tableRowLightMode: {
     "&.Mui-selected, &.Mui-selected:hover": {
@@ -87,13 +96,29 @@ const useStyles = makeStyles((theme: Theme) => ({
   italics: {
     fontStyle: "italic",
   },
+  extraspace: {
+    fontStyle: "italic",
+    marginLeft: theme.spacing(1),
+    marginTop: theme.spacing(5),
+  },
 }));
+
+const HtmlTooltip = withStyles((theme) => ({
+  tooltip: {
+    backgroundColor: '#f5f5f9',
+    color: 'rgba(0, 0, 0, 0.87)',
+    maxWidth: 350,
+    fontSize: theme.typography.pxToRem(14),
+    border: '1px solid #dadde9',
+  },
+}))(Tooltip);
 
 interface OptionTableProps {
   symbol: string;
   currPrice: number;
   chosenOptionChain: any;
   gainOrLoss: string;
+  callsOrPuts: string;
   isSelected: (selected) => void;
   overrideConfig: (config) => void;
 }
@@ -103,6 +128,7 @@ function OptionTable({
   currPrice,
   chosenOptionChain,
   gainOrLoss,
+  callsOrPuts,
   isSelected,
   overrideConfig,
 }: OptionTableProps) {
@@ -114,6 +140,10 @@ function OptionTable({
   const [quantity, setQuantity] = React.useState(1);
   const [price, setPrice] = React.useState(0);
   const [greekVals, setGreekVals] = React.useState({});
+
+  const currencyFormat = (num) => {
+    return '$' + num.toFixed(2).replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,')
+  };
 
   const displayCallOptions = () => {
     return chosenOptionChain
@@ -138,9 +168,6 @@ function OptionTable({
               {sign + Math.abs(opt.percentChange).toFixed(2)}%
             </TableCell>
             <TableCell>
-              {sign}${Math.abs(opt.change).toFixed(2)}
-            </TableCell>
-            <TableCell>
               <Button
                 className={classes.test}
                 variant={
@@ -149,15 +176,6 @@ function OptionTable({
               >
                 ${opt.lastPrice.toFixed(2)}
               </Button>
-            </TableCell>
-            <TableCell>
-              <CreateIcon
-                onClick={()=> {
-                  calculateGreeks(opt);
-                  setPrice(opt.lastPrice);
-                  setConfigDialogState(true);
-                }}
-              />
             </TableCell>
           </TableRow>
         );
@@ -174,15 +192,47 @@ function OptionTable({
       timeDiff,
       option.impliedVolatility,
       0.04,
-      "call"
+      callsOrPuts
+    );
+    let gamma = greeks.getGamma(
+      currPrice,
+      option.strike,
+      timeDiff,
+      option.impliedVolatility,
+      0.04,
+      callsOrPuts
+    );
+    let theta = greeks.getTheta(
+      currPrice,
+      option.strike,
+      timeDiff,
+      option.impliedVolatility,
+      0.04,
+      callsOrPuts
+    );
+    let vega = greeks.getVega(
+      currPrice,
+      option.strike,
+      timeDiff,
+      option.impliedVolatility,
+      0.04,
+      callsOrPuts
+    );
+    let rho = greeks.getRho(
+      currPrice,
+      option.strike,
+      timeDiff,
+      option.impliedVolatility,
+      0.04,
+      callsOrPuts
     );
 
     setGreekVals({
       delta: delta.toFixed(2),
-      gamma: delta.toFixed(2),
-      theta: delta.toFixed(2),
-      vega: delta.toFixed(2),
-      rho: delta.toFixed(2),
+      gamma: gamma.toFixed(2),
+      theta: theta.toFixed(2),
+      vega: vega.toFixed(2),
+      rho: rho.toFixed(2),
     });
   };
 
@@ -210,12 +260,68 @@ function OptionTable({
           <Table stickyHeader>
             <TableHead>
               <TableRow>
-                <TableCell>Strike Price</TableCell>
-                <TableCell>Break Even</TableCell>
-                <TableCell>% Change</TableCell>
-                <TableCell>Change</TableCell>
-                <TableCell>Price</TableCell>
-                <TableCell>Edit</TableCell>
+                <TableCell>
+                  <Grid container alignItems="stretch" justify="flex-start">
+                    <Grid item xs={2}>
+                      <HtmlTooltip
+                        placement="top"
+                        title="The price at which you may buy shares of the stock if you choose to exercise the option"
+                      >
+                        <InfoOutlinedIcon />
+                      </HtmlTooltip>
+                    </Grid>
+                    <Grid item xs>
+                      Strike Price
+                    </Grid>
+                  </Grid>
+                </TableCell>
+                <TableCell>
+                  <Grid container alignItems="stretch">
+                    <Grid item xs={2}>
+                      <HtmlTooltip
+                        placement="top"
+                        title="The price of the stock at which your profit is $0, if you choose to exercise the option.
+                        It is simply the strike price plus the cost of the contract."
+                      >
+                        <InfoOutlinedIcon />
+                      </HtmlTooltip>
+                    </Grid>
+                    <Grid item xs>
+                      Break Even
+                    </Grid>
+                  </Grid>
+                </TableCell>
+                <TableCell>
+                  <Grid container alignItems="stretch">
+                    <Grid item xs={2}>
+                      <HtmlTooltip
+                        placement="top"
+                        title="The % change in the price of the option from the previous trading day."
+                      >
+                        <InfoOutlinedIcon />
+                      </HtmlTooltip>
+                    </Grid>
+                    <Grid item xs>
+                      % Change
+                    </Grid>
+                  </Grid>
+                </TableCell>
+                <TableCell>
+                  <Grid container alignItems="stretch" justify="flex-start">
+                    <Grid item xs={2}>
+                      <HtmlTooltip
+                        placement="top"
+                        title="The current price of the option contract. Because the contract is for 100 shares, you must pay
+                        100 times this price to own the contract."
+                      >
+                        <InfoOutlinedIcon />
+                      </HtmlTooltip>
+                    </Grid>
+                    <Grid item xs>
+                      Price
+                    </Grid>
+                  </Grid>
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>{displayCallOptions()}</TableBody>
@@ -241,13 +347,37 @@ function OptionTable({
               obligation</span>, to purchase <span className={classes.underlinedAsset}>
               {100*quantity}</span> shares of <span className={classes.underlinedGainOrLoss}>
               {symbol}</span> at a price of <span className={classes.underlinedAsset}>
-              ${selected.strike}</span> per share, on or before <span className={classes.underlined}>
+              {currencyFormat(selected.strike)}</span> per share, on or before <span className={classes.underlined}>
               {moment.unix(selected.expiration).add(1, 'day').format('MMMM Do, YYYY')}</span>.
             </Typography>
             <Typography className={classes.dialog}>
               This contract will cost you <span className={classes.underlinedAsset}>
-              ${price > 0 ? price*100*quantity : selected.lastPrice*100*quantity}</span> total.
+              {currencyFormat(price > 0 ? price*100*quantity : selected.lastPrice*100*quantity)}</span> total.
             </Typography>
+            <Grid container alignItems="center" justify="flex-start" className={classes.extraspace}>
+              <Grid item xs={1}>
+              <WbIncandescentOutlinedIcon style={{fill: "gold", fontSize: 30}}/>
+              </Grid>
+              <Grid item xs>
+              <Typography className={classes.dialog}>
+               Use the pencil icon below to backfill with your own personal
+               cost & quantity data to see personalized results below.
+              </Typography>
+              </Grid>
+            </Grid>
+            <Grid container alignItems="center" justify="flex-start" className={classes.extraspace}>
+              <Grid item xs={1}>
+              <CreateIcon
+                style={{fontSize: 30}}
+                onClick={() => {
+                  calculateGreeks(selected);
+                  setConfigDialogState(true);
+                }}
+              />
+              </Grid>
+              <Grid item xs>
+              </Grid>
+            </Grid>
           </CardContent>
         </Card>
       </Grid>
@@ -255,7 +385,8 @@ function OptionTable({
     </Grid>
     <Dialog open={configDialogState} className={classes.spacing}>
       <DialogTitle>
-          {moment.unix(selected.expiration).format('M/D/YY')} ${selected.strike} Call
+        {symbol} {moment.unix(selected.expiration).add(1, 'day').format('M/D')} $
+        {selected.strike}c
       </DialogTitle>
       <DialogContent>
         <Grid container>
@@ -277,22 +408,21 @@ function OptionTable({
               fullWidth
             />
           </Grid>
-          <Grid item>
-            <Typography>
-            </Typography>
-          </Grid>
+
         </Grid>
-        <Grid container justify="center">
+        <Grid container justify="center" className={classes.dialog}>
           <Grid item xs={12}>
             <Table>
-              <TableBody>
+              <TableHead>
                 <TableRow>
-                  <TableCell align='right'>Delta</TableCell>
-                  <TableCell align='right'>Gamma</TableCell>
-                  <TableCell align='right'>Theta</TableCell>
-                  <TableCell align='right'>Vega</TableCell>
-                  <TableCell align='right'>Rho</TableCell>
+                  <TableCell style={{fontWeight: 'bolder'}} align='right'>Delta</TableCell>
+                  <TableCell style={{fontWeight: 'bolder'}} align='right'>Gamma</TableCell>
+                  <TableCell style={{fontWeight: 'bolder'}} align='right'>Theta</TableCell>
+                  <TableCell style={{fontWeight: 'bolder'}} align='right'>Vega</TableCell>
+                  <TableCell style={{fontWeight: 'bolder'}} align='right'>Rho</TableCell>
                 </TableRow>
+              </TableHead>
+              <TableBody>
                 <TableRow>
                   <TableCell align='right'>{greekVals.delta}</TableCell>
                   <TableCell align='right'>{greekVals.gamma}</TableCell>
@@ -302,6 +432,13 @@ function OptionTable({
                 </TableRow>
               </TableBody>
             </Table>
+          </Grid>
+          <Grid item>
+            <Typography className={classes.note}>
+              Note: These values are an approximation calculated from the <a
+              href="https://www.investopedia.com/terms/b/blackscholes.asp">
+              Black-Scholes</a> model and may not be 100% accurate.
+            </Typography>
           </Grid>
         </Grid>
       </DialogContent>
