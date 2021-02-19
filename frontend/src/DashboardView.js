@@ -34,6 +34,8 @@ import OptionGraph from "./OptionGraph";
 import ArrowDownwardIcon from '@material-ui/icons/ArrowDownward';
 import { merge, bounce, bounceInDown } from 'react-animations';
 import { StyleSheet, css } from 'aphrodite';
+import parse from 'autosuggest-highlight/parse';
+import match from 'autosuggest-highlight/match';
 
 const GainColor = "#00C805";
 const LossColor = "#FF5000";
@@ -135,8 +137,6 @@ const animationStyles = StyleSheet.create({
     borderRadius: 50,
   }
 })
-
-
 
 const STATUS_OK = 200;
 const INFLATION_RATE = 0.014;
@@ -247,6 +247,29 @@ function DashboardView() {
     matchFrom: 'start',
     stringify: option => option.ticker || option.title,
   });
+
+  const capitalize = (word) => {
+    let capitalized = word.toLowerCase()
+    .split(' ')
+    .map((s) => s.charAt(0).toUpperCase() + s.substring(1))
+    .join(' ');
+
+    var uselessWordsArray =
+        ["inc", "ltd", "corp", "de"];
+
+	  var expStr = uselessWordsArray.join("|");
+	  return capitalized.replace(new RegExp('\\b(' + expStr + ')\\b', 'gi'), ' ')
+                      .replace(/\s{2,}/g, ' ')
+                      .replace('.','')
+                      .replace(',','')
+                      .replace('/','')
+                      .replace('\\','');
+
+  }
+
+  React.useEffect(() => {
+    console.log(symbolSearch);
+  }, [symbolSearch]);
 
   return (
     <>
@@ -409,32 +432,32 @@ function DashboardView() {
             <Grid container justify="center">
               <Grid item>
                 <Autocomplete
-                  open={symbolSearch.length > 3}
-                  filterOptions={filterOptions}
+                  style={{ width: 500 }}
                   options={filteredMatches}
-                  getOptionLabel={option => {
-                    if (option) {
-                      return option.ticker + " - " + option.title
-                    } else {
-                      return "test";
-                    }
-
-                  }}
-                  style={{ width: 300 }}
-                  renderInput={params => (
+                  getOptionLabel={(option) => option.ticker + " - " + capitalize(option.title)}
+                  renderInput={(params) => (
                     <TextField {...params}
-                      label="Symbol Lookup"
+                      label="Stock Lookup" variant="outlined" margin="normal"
                       placeholder="AAPL, GME, etc."
                       helperText="Enter a stock ticker and press Enter"
-                      onKeyPress={(e) => {
-                        if (e.key === "Enter") {
-                          handleSymbolLookup();
-                        }
-                      }}
+                      value={symbolSearch}
                       onChange={(e) => setSymbolSearch(e.target.value)}
-                      fullWidth={true}
                     />
                   )}
+                  renderOption={(option, { inputValue }) => {
+                    let input = option.ticker + " - " + capitalize(option.title);
+                    const matches = match(input, inputValue);
+                    const parts = parse(input, matches);
+                    return (
+                      <div>
+                        {parts.map((part, index) => (
+                          <span key={index} style={{ color: part.highlight ? GainColor : "black" }}>
+                            {part.text}
+                          </span>
+                        ))}
+                      </div>
+                    );
+                  }}
                 />
               </Grid>
             </Grid>

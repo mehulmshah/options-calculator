@@ -70,6 +70,7 @@ app.get("/lookupTickers", async function (req, res) {
     .then((response) => {
       res.status(200);
       dataArr = Object.keys(response.data).map(function(key) { return response.data[key] })
+      processedDataArr = dataArr.map((d) => d.ticker + " " + d.title);
       res.send(dataArr);
     })
     .catch((err) => {
