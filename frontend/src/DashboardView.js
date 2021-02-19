@@ -38,7 +38,7 @@ const LossColor = "#FF5000";
 
 const useStyles = makeStyles((theme: Theme) => ({
   root: {
-    minWidth: 600,
+    minWidth: 300,
     maxWidth: "90vw",
     margin: "auto",
     marginTop: 50,
@@ -108,7 +108,10 @@ const useStyles = makeStyles((theme: Theme) => ({
   },
   hidden: {
     display: "none",
-  }
+  },
+  enterTicker: {
+    width: 500,
+  },
 }));
 
 const HtmlTooltip = withStyles((theme) => ({
@@ -133,8 +136,6 @@ const animationStyles = StyleSheet.create({
     borderRadius: 50,
   }
 })
-
-
 
 const STATUS_OK = 200;
 const INFLATION_RATE = 0.014;
@@ -181,7 +182,6 @@ function DashboardView() {
       .get("/stock?ticker=" + symbolSearch.toLowerCase())
       .then((response) => {
         if (response.status === STATUS_OK) {
-          console.log(response.data);
           setSymbol(symbolSearch.toUpperCase());
           setSymbolSearch(symbolSearch.toUpperCase());
           setDisableSearch(true);
@@ -207,7 +207,6 @@ function DashboardView() {
       .get(endpoint)
       .then((response) => {
         if (response.status === STATUS_OK) {
-          console.log(response.data);
           let optionsJson = response.data.optionChain.result[0].options[0];
           let expDates = response.data.optionChain.result[0].expirationDates;
           setOptionChain({
@@ -249,6 +248,7 @@ function DashboardView() {
                   label="Symbol Lookup"
                   placeholder="AAPL, GME, etc."
                   helperText="Enter a stock ticker and press Enter"
+                  variant="outlined"
                   value={symbolSearch}
                   onChange={(e) => setSymbolSearch(e.target.value)}
                   onKeyPress={(e) => {
@@ -257,22 +257,7 @@ function DashboardView() {
                     }
                   }}
                   fullWidth={true}
-                  disabled={disableSearch}
                 />
-              </Grid>
-              <Grid item xs={1}>
-                {disableSearch ?
-                  <HtmlTooltip
-                    placement="top"
-                    title="Click here to enter a new stock ticker">
-                    <CreateIcon
-                      onClick={() => setDisableSearch(false)}
-                    />
-                  </HtmlTooltip> :
-                  <CreateIconOutlined
-                    onClick={() => setDisableSearch(true)}
-                  />
-                }
               </Grid>
               {/* ticker and current price */}
               <Grid item xs={12} >
@@ -293,7 +278,6 @@ function DashboardView() {
                         setCallsOrPuts("call");
                         setChosenOptionChain(optionChain.calls);
                       }}
-                      variant="none"
                       className={
                         callsOrPuts === "call"
                           ? classes.selected
@@ -310,7 +294,6 @@ function DashboardView() {
                         setCallsOrPuts("put");
                         setChosenOptionChain(optionChain.puts);
                       }}
-                      variant="none"
                       className={
                         callsOrPuts === "put"
                           ? classes.selected
@@ -344,7 +327,7 @@ function DashboardView() {
                           ? "MMMM Do"
                           : "MMMM Do, YYYY";
                       return (
-                        <MenuItem value={exp}>
+                        <MenuItem value={exp} key={exp}>
                           {date.format(format)}
                         </MenuItem>
                       );
@@ -399,6 +382,7 @@ function DashboardView() {
                 <TextField
                   autoFocus
                   className={classes.enterTicker}
+                  variant="outlined"
                   label="Symbol Lookup"
                   placeholder="AAPL, GME, etc."
                   helperText="Enter a stock ticker and press Enter"

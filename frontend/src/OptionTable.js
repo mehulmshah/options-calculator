@@ -123,6 +123,8 @@ interface OptionTableProps {
   overrideConfig: (config) => void;
 }
 
+const INFLATION_RATE = 0.014;
+
 function OptionTable({
   symbol,
   currPrice,
@@ -145,7 +147,7 @@ function OptionTable({
     return '$' + num.toFixed(2).replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,')
   };
 
-  const displayCallOptions = () => {
+  const displayOptions = () => {
     return chosenOptionChain
       .filter((opt) => opt)
       .map((opt) => {
@@ -191,7 +193,7 @@ function OptionTable({
       option.strike,
       timeDiff,
       option.impliedVolatility,
-      0.04,
+      INFLATION_RATE,
       callsOrPuts
     );
     let gamma = greeks.getGamma(
@@ -199,7 +201,7 @@ function OptionTable({
       option.strike,
       timeDiff,
       option.impliedVolatility,
-      0.04,
+      INFLATION_RATE,
       callsOrPuts
     );
     let theta = greeks.getTheta(
@@ -207,7 +209,7 @@ function OptionTable({
       option.strike,
       timeDiff,
       option.impliedVolatility,
-      0.04,
+      INFLATION_RATE,
       callsOrPuts
     );
     let vega = greeks.getVega(
@@ -215,7 +217,7 @@ function OptionTable({
       option.strike,
       timeDiff,
       option.impliedVolatility,
-      0.04,
+      INFLATION_RATE,
       callsOrPuts
     );
     let rho = greeks.getRho(
@@ -223,16 +225,16 @@ function OptionTable({
       option.strike,
       timeDiff,
       option.impliedVolatility,
-      0.04,
+      INFLATION_RATE,
       callsOrPuts
     );
 
     setGreekVals({
-      delta: delta.toFixed(2),
-      gamma: gamma.toFixed(2),
-      theta: theta.toFixed(2),
-      vega: vega.toFixed(2),
-      rho: rho.toFixed(2),
+      delta: delta.toFixed(4),
+      gamma: gamma.toFixed(4),
+      theta: theta.toFixed(4),
+      vega: vega.toFixed(4),
+      rho: rho.toFixed(4),
     });
   };
 
@@ -242,7 +244,7 @@ function OptionTable({
         let containerHeight = tableRef.current.offsetHeight;
         let targetOffset = selectedRef.current.offsetTop;
         let targetHeight = selectedRef.current.offsetHeight;
-        let top = targetOffset - targetHeight;
+        let top = targetOffset - targetHeight + 7;
 
         tableRef.current.scroll({
           top,
@@ -252,22 +254,31 @@ function OptionTable({
     }
   }, [selectedRef, tableRef]);
 
+  React.useEffect(() => {
+    let arr = chosenOptionChain.map((opt) => opt.strike);
+    var closest = arr.reduce(function(prev, curr) {
+      return (Math.abs(curr - currPrice) < Math.abs(prev - currPrice) ? curr : prev);
+    });
+    console.log(closest);
+    setSelected(chosenOptionChain.find((opt) => opt.strike === closest) ?? {});
+  }, [chosenOptionChain]);
+
   return (
     <>
     <Grid item container spacing={3} justify="space-between">
-      <Grid item xs>
+      <Grid item xs={12} lg={6}>
         <TableContainer component={Paper} className={classes.table} ref={tableRef}>
           <Table stickyHeader>
             <TableHead>
               <TableRow>
                 <TableCell>
                   <Grid container alignItems="stretch" justify="flex-start">
-                    <Grid item xs={2}>
+                    <Grid item xs={3}>
                       <HtmlTooltip
                         placement="top"
                         title="The price at which you may buy shares of the stock if you choose to exercise the option"
                       >
-                        <InfoOutlinedIcon />
+                        <InfoOutlinedIcon style={{cursor: 'pointer'}}/>
                       </HtmlTooltip>
                     </Grid>
                     <Grid item xs>
@@ -277,13 +288,13 @@ function OptionTable({
                 </TableCell>
                 <TableCell>
                   <Grid container alignItems="stretch">
-                    <Grid item xs={2}>
+                    <Grid item xs={3}>
                       <HtmlTooltip
                         placement="top"
                         title="The price of the stock at which your profit is $0, if you choose to exercise the option.
                         It is simply the strike price plus the cost of the contract."
                       >
-                        <InfoOutlinedIcon />
+                        <InfoOutlinedIcon style={{cursor: 'pointer'}}/>
                       </HtmlTooltip>
                     </Grid>
                     <Grid item xs>
@@ -293,12 +304,12 @@ function OptionTable({
                 </TableCell>
                 <TableCell>
                   <Grid container alignItems="stretch">
-                    <Grid item xs={2}>
+                    <Grid item xs={3}>
                       <HtmlTooltip
                         placement="top"
                         title="The % change in the price of the option from the previous trading day."
                       >
-                        <InfoOutlinedIcon />
+                        <InfoOutlinedIcon style={{cursor: 'pointer'}}/>
                       </HtmlTooltip>
                     </Grid>
                     <Grid item xs>
@@ -308,13 +319,13 @@ function OptionTable({
                 </TableCell>
                 <TableCell>
                   <Grid container alignItems="stretch" justify="flex-start">
-                    <Grid item xs={2}>
+                    <Grid item xs={3}>
                       <HtmlTooltip
                         placement="top"
                         title="The current price of the option contract. Because the contract is for 100 shares, you must pay
                         100 times this price to own the contract."
                       >
-                        <InfoOutlinedIcon />
+                        <InfoOutlinedIcon style={{cursor: 'pointer'}}/>
                       </HtmlTooltip>
                     </Grid>
                     <Grid item xs>
@@ -324,13 +335,13 @@ function OptionTable({
                 </TableCell>
               </TableRow>
             </TableHead>
-            <TableBody>{displayCallOptions()}</TableBody>
+            <TableBody>{displayOptions()}</TableBody>
           </Table>
         </TableContainer>
       </Grid>
       {/* chosen option explanation */}
       {selected.strike && (
-      <Grid item xs>
+      <Grid item xs={12} lg={6}>
         <Card className={classes.table}>
           <CardHeader
             className={classes.dialog}

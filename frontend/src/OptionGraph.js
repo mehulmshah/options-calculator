@@ -125,6 +125,8 @@ interface OptionGraphProps {
   config: any;
 }
 
+const INFLATION_RATE = 0.014;
+
 function OptionGraph({
   symbol,
   currPrice,
@@ -164,7 +166,7 @@ function OptionGraph({
         selectedOption.strike,
         timeDiffInYears,
         selectedOption.impliedVolatility,
-        0.056,
+        INFLATION_RATE,
         callsOrPuts
       );
       tempObj.x = i;
@@ -347,7 +349,7 @@ function OptionGraph({
   return (
     <>
       <Grid container spacing={3} className={classes.spacing} justify="center">
-        <Grid item xs={6}>
+        <Grid item xs={12} md={6}>
           <Grid container direction="column" spacing={3}>
             <Grid item>
               {generateChart()}
@@ -398,7 +400,7 @@ function OptionGraph({
             </Grid>
           </Grid>
         </Grid>
-        <Grid item xs={6}>
+        <Grid item xs={12} md={6}>
           <Card>
             <CardHeader
               classes={{
