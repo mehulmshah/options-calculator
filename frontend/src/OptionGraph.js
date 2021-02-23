@@ -71,7 +71,7 @@ const useStyles = makeStyles((theme: Theme) => ({
     fontStyle: "italic",
   },
   graphContainer: {
-    width: "95%",
+    width: "90%",
     height: 550,
   },
   cardHeader: {
@@ -160,7 +160,7 @@ function OptionGraph({
     let timeDiffInYears = (
       Math.abs(moment().diff(moment.unix(expiration).utc(), "days")) - (daysInFuture)) /
       365;
-    timeDiffInYears = timeDiffInYears < 0 ? 0 : timeDiffInYears;
+    timeDiffInYears = Math.max(0, timeDiffInYears);
     let adder = stockRange / 200;
     let chartPosData = [];
     let chartNegData = [];
@@ -184,8 +184,7 @@ function OptionGraph({
         chartNegData.push(tempObj);
         chartPosData.push({x: tempObj.x, y: null, d: null})
       }
-
-    }
+    };
 
     var data = [
       {
@@ -255,30 +254,13 @@ function OptionGraph({
               textStyle: {stroke: '#0CB0E6'},
           },
         ]}
-        defs={[
-          linearGradientDef('gradientLoss', [
-            { offset: 0, color: LossColor, opacity: 0 },
-            { offset: 30, color: LossColor, opacity: 0.7 },
-            { offset: 100, color: LossColor, opacity: 1 },
-          ]),
-          linearGradientDef('gradientGain', [
-              { offset: 0, color: GainColor },
-              { offset: 70, color: GainColor, opacity: 0.7 },
-              { offset: 100, color: GainColor, opacity: 0 },
-          ])
-        ]}
-        fill={[
-          // match using function
-          { match: d => d.id === 'negative', id: 'gradientLoss' },
-          { match: d => d.id === 'positive', id: 'gradientGain' },
-          { match: '*', id: 'gradientGain' },
-        ]}
         margin={{ top: 40, right: 20, bottom: 80, left: 80 }}
         areaBaselineValue={areaBaseline}
         xScale={{ type: 'linear', min: 'auto', max: 'auto'}}
         xFormat=">-$.2f"
         yScale={{ type: 'linear', min: 'auto', max: 'auto'}}
         yFormat=" >-$.2f"
+        colors={['rgb(97, 205, 187)', 'rgb(244, 117, 96)']}
         axisTop={null}
         axisRight={null}
         axisBottom={{
@@ -303,7 +285,7 @@ function OptionGraph({
             format: (values) => `$${values}`,
         }}
         enableArea={true}
-        areaOpacity={0.4}
+        areaOpacity={0.2}
         enablePoints={false}
         useMesh={true}
         crosshairType='cross'
@@ -408,7 +390,7 @@ function OptionGraph({
         </Grid>
         {clickEvent.data && (
         <Grid item xs={12} md={4}>
-          <Card>
+          <Card style={{paddingRight: 8}}>
             <CardHeader
               classes={{
                 title: classes.CardHeader,

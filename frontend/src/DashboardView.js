@@ -210,8 +210,8 @@ function DashboardView() {
           let optionsJson = response.data.optionChain.result[0].options[0];
           let expDates = response.data.optionChain.result[0].expirationDates;
           setOptionChain({
-            calls: optionsJson.calls,
-            puts: optionsJson.puts,
+            calls: optionsJson.calls.reverse(),
+            puts: optionsJson.puts.reverse(),
           });
           setChosenOptionChain(optionsJson.calls);
           if (exp === "") {

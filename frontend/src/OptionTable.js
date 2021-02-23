@@ -36,6 +36,7 @@ import WbIncandescentOutlinedIcon from '@material-ui/icons/WbIncandescentOutline
 import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
 import CasinoRoundedIcon from '@material-ui/icons/CasinoRounded';
 import LocalAtmOutlinedIcon from '@material-ui/icons/LocalAtmOutlined';
+import SettingsIcon from '@material-ui/icons/Settings';
 import moment from "moment";
 import blackScholes from "black-scholes";
 import greeks from "greeks";
@@ -70,11 +71,12 @@ const useStyles = makeStyles((theme: Theme) => ({
   },
   table: {
     width: "100%",
-    maxHeight: 500,
-    height: 400,
+    maxHeight: 550,
+    height: 450,
   },
-  test: {
+  priceButton: {
     backgroundColor: ({ gainOrLoss }) => gainOrLoss,
+    width: 60,
     "&:hover": {
       backgroundColor: ({ gainOrLoss }) => gainOrLoss,
     },
@@ -179,10 +181,8 @@ function OptionTable({
             </TableCell>
             <TableCell>
               <Button
-                className={classes.test}
-                variant={
-                  opt.strike === selected.strike ? "contained" : "outlined"
-                }
+                className={classes.priceButton}
+                variant={currSelected ? "contained" : "outlined"}
               >
                 ${opt.lastPrice.toFixed(2)}
               </Button>
@@ -204,6 +204,7 @@ function OptionTable({
       INFLATION_RATE,
       callsOrPuts
     );
+
     let gamma = greeks.getGamma(
       currPrice,
       option.strike,
@@ -294,7 +295,7 @@ function OptionTable({
 
   return (
     <>
-    <Grid item container spacing={3} justify="space-evenly">
+    <Grid item container spacing={2} justify="space-evenly">
       <Grid item xs={12} lg={selected.strike ? 6 : 12}>
         <TableContainer component={Paper} className={classes.table} ref={tableRef}>
           <Table stickyHeader>
@@ -395,53 +396,76 @@ function OptionTable({
                 <TableHead>
                   <TableRow>
                     <TableCell>
-                      <div style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          flexWrap: 'wrap',
-                      }}>
-                        <span style={{marginRight: 3}}>Cost</span>
-                        <LocalAtmOutlinedIcon style={{fill: 'gold', fontSize: 30}}/>
-                      </div>
+                      <Grid container justify="center">
+                        <Grid item>
+                          <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              flexWrap: 'wrap',
+                          }}>
+                            <span style={{marginRight: 3}}>Cost</span>
+                            <LocalAtmOutlinedIcon style={{fill: 'gold', fontSize: 30}}/>
+                          </div>
+                        </Grid>
+                      </Grid>
                     </TableCell>
                     <TableCell>
-                      <div style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          flexWrap: 'wrap',
-                      }}>
-                        <span style={{marginRight: 5}}>Probability of Profit</span>
-                        <CasinoRoundedIcon style={{fill: '#3cd070', fontSize: 30}}/>
-                      </div>
+                      <Grid container justify="center">
+                        <Grid item>
+                          <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              flexWrap: 'nowrap',
+                          }}>
+                            <span style={{marginRight: 5}}>Probability of Profit</span>
+                            <CasinoRoundedIcon style={{fill: '#3cd070', fontSize: 30}}/>
+                          </div>
+                        </Grid>
+                      </Grid>
                     </TableCell>
                     <TableCell>
-                      <div style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          flexWrap: 'wrap',
-                      }}>
-                        <span style={{marginRight: 5}}>Customize</span>
-                        <CreateIcon
-                          style={{fontSize: 30, cursor: 'pointer'}}
-                          onClick={() => {
-                            calculateGreeks(selected);
-                            setConfigDialogState(true);
-                          }}
-                        />
-                      </div>
+                      <Grid container justify="center">
+                        <Grid item>
+                          <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              flexWrap: 'wrap',
+                          }}>
+                            <span style={{marginRight: 5}}>Details</span>
+                            <SettingsIcon style={{fontSize: 30}}/>
+                          </div>
+                        </Grid>
+                      </Grid>
                     </TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   <TableRow>
-                    <TableCell style={{fontSize: 18, fontWeight: 'bold'}}>
+                    <TableCell style={{fontSize: 18, fontWeight: 'bold', textAlign: 'center'}}>
                       {currencyFormat(price > 0 ? price*100*quantity : selected.lastPrice*100*quantity)}
                     </TableCell>
-                    <TableCell style={{fontSize: 18, fontWeight: 'bold'}}>
+                    <TableCell style={{fontSize: 18, fontWeight: 'bold', textAlign: 'center'}}>
                       {Math.round(chanceOfProfit)}%
                     </TableCell>
-                    <TableCell style={{fontSize: 18, fontWeight: 'bold'}}>
-                      {quantity} contract{quantity>1&&'s'} @ {price > 0 ? currencyFormat(parseFloat(price)) : currencyFormat(selected.lastPrice)}
+                    <TableCell style={{fontSize: 18, fontWeight: 'bold', textAlign: 'center'}}>
+                      <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          flexWrap: 'nowrap',
+                      }}>
+                        <span style={{marginRight: 6}}>{quantity} contract{quantity>1&&'s'} @ {price > 0 ? currencyFormat(parseFloat(price)) : currencyFormat(selected.lastPrice)}</span>
+                          <Button
+                            style={{fontSize: 20, cursor: 'pointer', border: '1px solid black'}}
+                            onClick={() => {
+                              calculateGreeks(selected);
+                              setConfigDialogState(true);
+                            }}
+                          >
+                            <CreateIcon
+
+                            />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 </TableBody>
