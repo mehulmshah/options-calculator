@@ -83,7 +83,7 @@ function HeaderBar() {
             <div className={classes.timeBox}>
               {marketOpen ? (
               <span>
-                Market closes in 0{16-currTime.hours()}:
+                Market closes in 0{15-currTime.hours()}:
                 {currTime.minutes()>50 && '0'}{60-currTime.minutes()}:
                 {currTime.seconds()>50 && '0'}{60-currTime.seconds()}
               </span>

@@ -170,11 +170,7 @@ function DashboardView() {
   }
 
   const handleSymbolLookup = () => {
-    lookupKey = enqueueSnackbar(`Looking up ${symbolSearch.toUpperCase()}`, { variant: "info" });
     getStockData();
-    setTimeout(() => {
-      closeSnackbar(lookupKey);
-    }, [1000]);
   };
 
   const getStockData = (exp = "") => {
@@ -194,9 +190,6 @@ function DashboardView() {
       })
       .catch((error) => {
         console.log(error);
-        enqueueSnackbar(`Error searching for ${symbolSearch.toUpperCase()} quote`, {
-          variant: "error",
-        });
       });
 
     let endpoint = "/option?ticker=" + symbolSearch.toLowerCase();
@@ -222,12 +215,6 @@ function DashboardView() {
       })
       .catch((error) => {
         console.log(error);
-        enqueueSnackbar(
-          `Error searching for ${symbolSearch.toUpperCase()}`,
-          {
-            variant: "error",
-          }
-        );
       });
     };
 

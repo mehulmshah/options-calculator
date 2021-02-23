@@ -196,7 +196,12 @@ function OptionGraph({
         data: chartNegData
       },
     ];
-    let areaBaseline = data[0].data[0].y > 0 ? data[0].data[0].y : 0;
+    let areaBaseline = 0;
+    if (callsOrPuts === "call") {
+      areaBaseline = data[0].data[0].y > 0 ? data[0].data[0].y : 0;
+    } else {
+      areaBaseline = data[0].data[0].y > 0 ? 0 : data[0].data[0].y;
+    }
 
     const chartTheme = {
       textColor: theme.palette.type === "light" ? "black" : "white",
@@ -291,43 +296,47 @@ function OptionGraph({
         crosshairType='cross'
         theme={chartTheme}
         tooltip={(input) => {
+            let stockPrice = input.point.data.x;
             let sellProfit = input.point.data.y;
             let exerProfit = 100*config.quantity*(input.point.data.x -
             costPerContract - selectedOption.strike);
-            let divOrder = sellProfit > exerProfit ?
-              (
-                <div
-                  style={{
-                      background: 'white',
-                      padding: '9px 12px',
-                      border: '1px solid #ccc',
-                  }}
-                >
-                  <div style={{color: sellProfit > 0 ? GainColor : LossColor}}>
-                    Sell Returns: {currencyFormat(sellProfit)}
-                  </div>
-                  <div style={{color: exerProfit > 0 ? GainColor : LossColor}}>
-                    Exercise Returns: {currencyFormat(exerProfit)}
-                  </div>
-                </div>
-              ) :
-              (
-                <div
-                  style={{
-                      background: 'white',
-                      padding: '9px 12px',
-                      border: '1px solid #ccc',
-                  }}
-                >
-                  <div style={{color: exerProfit > 0 ? GainColor : LossColor}}>
-                    Exercise Returns: {currencyFormat(exerProfit)}
-                  </div>
-                  <div style={{color: sellProfit > 0 ? GainColor : LossColor}}>
-                    Sell Returns: {currencyFormat(sellProfit)}
-                  </div>
-                </div>
+            let divOrder = sellProfit > exerProfit ? (
+              <>
+              <div style={{color: sellProfit > 0 ? GainColor : LossColor, clear: 'both'}}>
+                <span style={{float: 'left'}}>Sell Returns: </span>
+                <span style={{float: 'right'}}>{currencyFormat(sellProfit)}</span>
+              </div>
+              <div style={{color: exerProfit > 0 ? GainColor : LossColor, clear: 'both'}}>
+                <span style={{float: 'left'}}>Exercise Returns: </span> <span
+                  style={{float: 'right'}}> { currencyFormat(exerProfit)}</span>
+              </div>
+              </>
+            ) : (
+              <>
+              <div style={{color: exerProfit > 0 ? GainColor : LossColor, clear: 'both'}}>
+                <span style={{float: 'left'}}>Exercise Returns: </span> <span
+                  style={{float: 'right'}}> { currencyFormat(exerProfit)}</span>
+              </div>
+              <div style={{color: sellProfit > 0 ? GainColor : LossColor, clear: 'both'}}>
+                <span style={{float: 'left'}}>Sell Returns: </span>
+                <span style={{float: 'right'}}>{currencyFormat(sellProfit)}</span>
+              </div>
+              </>
             );
-            return divOrder;
+            return <div
+                      style={{
+                          background: 'white',
+                          padding: '10px 12px 27px',
+                          border: '1px solid #ccc',
+                          width: 250,
+                      }}
+                    >
+                      <div style={{color: stockPrice > currPrice ? GainColor : LossColor, clear: 'both'}}>
+                        <span style={{float: 'left'}}>Share Price: </span>
+                        <span style={{float: 'right'}}>{currencyFormat(stockPrice)}</span>
+                      </div>
+                      {divOrder}
+                    </div>
           }}
         colors={d=>d.id === 'positive' ? GainColor : LossColor}
         onClick={(p, e)=> setClickEvent(p)}
