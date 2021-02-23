@@ -11,6 +11,7 @@ import {
   Card,
   CardContent,
   CardHeader,
+  CardActions,
   Dialog,
   DialogActions,
   DialogTitle,
@@ -33,8 +34,12 @@ import {
 import CreateIcon from "@material-ui/icons/Create";
 import WbIncandescentOutlinedIcon from '@material-ui/icons/WbIncandescentOutlined';
 import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
+import CasinoRoundedIcon from '@material-ui/icons/CasinoRounded';
+import LocalAtmOutlinedIcon from '@material-ui/icons/LocalAtmOutlined';
 import moment from "moment";
+import blackScholes from "black-scholes";
 import greeks from "greeks";
+import CurrencyTextField from '@unicef/material-ui-currency-textfield'
 
 const useStyles = makeStyles((theme: Theme) => ({
   root: {
@@ -142,6 +147,7 @@ function OptionTable({
   const [quantity, setQuantity] = React.useState(1);
   const [price, setPrice] = React.useState(0);
   const [greekVals, setGreekVals] = React.useState({});
+  const [chanceOfProfit, setChanceOfProfit] = React.useState(0);
 
   const currencyFormat = (num) => {
     return '$' + num.toFixed(2).replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,')
@@ -153,6 +159,7 @@ function OptionTable({
       .map((opt) => {
         let currSelected = (opt.strike === selected.strike);
         let sign = opt.percentChange >= 0 ? "+" : "-";
+        let breakeven = opt.strike + opt.lastPrice;
         return (
           <TableRow
             key={opt.contractSymbol}
@@ -161,11 +168,12 @@ function OptionTable({
             onClick={() => {
               setSelected(opt);
               isSelected(opt);
+
             }}
             className={classes.tableRowLightMode}
           >
             <TableCell className={classes.bold}>${opt.strike}</TableCell>
-            <TableCell>${(opt.strike + opt.lastPrice).toFixed(2)}</TableCell>
+            <TableCell>{currencyFormat(breakeven)}</TableCell>
             <TableCell>
               {sign + Math.abs(opt.percentChange).toFixed(2)}%
             </TableCell>
@@ -239,34 +247,55 @@ function OptionTable({
   };
 
   React.useEffect(() => {
-    if (tableRef.current && selectedRef.current) {
+    let top = 0;
+    if (tableRef.current && !selectedRef.current) {
+      let arr = chosenOptionChain.map((opt) => opt.strike);
+      var closest = arr.reduce(function(prev, curr) {
+        return (Math.abs(curr - currPrice) < Math.abs(prev - currPrice) ? curr : prev);
+      });
+      let index = chosenOptionChain.findIndex((opt) => opt.strike === closest);
+      let ROW_HEIGHT = 69;
+      top = ROW_HEIGHT*index;
+    } else if (tableRef.current && selectedRef.current) {
       if (tableRef.current.scrollTop !== selectedRef.current.offsetTop) {
         let containerHeight = tableRef.current.offsetHeight;
         let targetOffset = selectedRef.current.offsetTop;
         let targetHeight = selectedRef.current.offsetHeight;
-        let top = targetOffset - targetHeight + 7;
-
-        tableRef.current.scroll({
-          top,
-          behavior: "smooth",
-        });
+        top = targetOffset - targetHeight + 7;
       }
     }
+    tableRef.current.scroll({
+      top,
+      behavior: "smooth",
+    });
   }, [selectedRef, tableRef]);
 
   React.useEffect(() => {
-    let arr = chosenOptionChain.map((opt) => opt.strike);
-    var closest = arr.reduce(function(prev, curr) {
-      return (Math.abs(curr - currPrice) < Math.abs(prev - currPrice) ? curr : prev);
-    });
-    console.log(closest);
-    setSelected(chosenOptionChain.find((opt) => opt.strike === closest) ?? {});
-  }, [chosenOptionChain]);
+    setSelected({});
+    isSelected({});
+  },[symbol]);
+
+  React.useEffect(() => {
+    if (selected) {
+      let avgCost = price > 0 ? parseFloat(price) : selected.lastPrice;
+      let timeDiffInYears =
+        Math.abs(moment().diff(moment.unix(selected.expiration).utc(), "days")) / 365;
+      let output = greeks.getDelta(
+        currPrice,
+        selected.strike + avgCost,
+        timeDiffInYears,
+        selected.impliedVolatility,
+        INFLATION_RATE,
+        callsOrPuts
+      );
+      setChanceOfProfit(100*(output));
+    }
+  }, [selected, greekVals, price]);
 
   return (
     <>
-    <Grid item container spacing={3} justify="space-between">
-      <Grid item xs={12} lg={6}>
+    <Grid item container spacing={3} justify="space-evenly">
+      <Grid item xs={12} lg={selected.strike ? 6 : 12}>
         <TableContainer component={Paper} className={classes.table} ref={tableRef}>
           <Table stickyHeader>
             <TableHead>
@@ -345,51 +374,96 @@ function OptionTable({
         <Card className={classes.table}>
           <CardHeader
             className={classes.dialog}
-            titleTypographyProps={{ variant: "h5", fontStyle: "bold" }}
+            titleTypographyProps={{ variant: "h5", fontWeight: "bold" }}
             title={`${symbol}
                     ${moment.unix(selected.expiration).add(1, 'day').format('M/D')}
                     $${selected.strike}c`}
             subheader="What Does This Mean?"
           />
           <CardContent>
-            <Typography className={classes.dialog}>
+            <Typography paragraph>
               You are buying {quantity} contract{quantity > 1 && 's'} that gives
               you the right, <span className={classes.italics}>but not
-              obligation</span>, to purchase <span className={classes.underlinedAsset}>
+              obligation</span>, to purchase <span style={{fontWeight: 'bold'}}>
               {100*quantity}</span> shares of <span className={classes.underlinedGainOrLoss}>
-              {symbol}</span> at a price of <span className={classes.underlinedAsset}>
-              {currencyFormat(selected.strike)}</span> per share, on or before <span className={classes.underlined}>
+              {symbol}</span> at a price of <span style={{fontWeight: 'bold'}}>
+              {currencyFormat(selected.strike)}</span> per share, on or before <span style={{fontWeight: 'bold'}}>
               {moment.unix(selected.expiration).add(1, 'day').format('MMMM Do, YYYY')}</span>.
             </Typography>
-            <Typography className={classes.dialog}>
-              This contract will cost you <span className={classes.underlinedAsset}>
-              {currencyFormat(price > 0 ? price*100*quantity : selected.lastPrice*100*quantity)}</span> total.
-            </Typography>
-            <Grid container alignItems="center" justify="flex-start" className={classes.extraspace}>
-              <Grid item xs={1}>
-              <WbIncandescentOutlinedIcon style={{fill: "gold", fontSize: 30}}/>
-              </Grid>
-              <Grid item xs>
-              <Typography className={classes.dialog}>
-               Use the pencil icon below to backfill with your own personal
-               cost & quantity data to see personalized results below.
-              </Typography>
-              </Grid>
-            </Grid>
-            <Grid container alignItems="center" justify="flex-start" className={classes.extraspace}>
-              <Grid item xs={1}>
-              <CreateIcon
-                style={{fontSize: 30}}
-                onClick={() => {
-                  calculateGreeks(selected);
-                  setConfigDialogState(true);
-                }}
-              />
-              </Grid>
-              <Grid item xs>
-              </Grid>
-            </Grid>
+            <TableContainer component={Paper} style={{marginTop: 20}}>
+              <Table stickyHeader style={{ tableLayout: 'fixed' }}>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>
+                      <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          flexWrap: 'wrap',
+                      }}>
+                        <span style={{marginRight: 3}}>Cost</span>
+                        <LocalAtmOutlinedIcon style={{fill: 'gold', fontSize: 30}}/>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          flexWrap: 'wrap',
+                      }}>
+                        <span style={{marginRight: 5}}>Probability of Profit</span>
+                        <CasinoRoundedIcon style={{fill: '#3cd070', fontSize: 30}}/>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          flexWrap: 'wrap',
+                      }}>
+                        <span style={{marginRight: 5}}>Customize</span>
+                        <CreateIcon
+                          style={{fontSize: 30, cursor: 'pointer'}}
+                          onClick={() => {
+                            calculateGreeks(selected);
+                            setConfigDialogState(true);
+                          }}
+                        />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  <TableRow>
+                    <TableCell style={{fontSize: 18, fontWeight: 'bold'}}>
+                      {currencyFormat(price > 0 ? price*100*quantity : selected.lastPrice*100*quantity)}
+                    </TableCell>
+                    <TableCell style={{fontSize: 18, fontWeight: 'bold'}}>
+                      {Math.round(chanceOfProfit)}%
+                    </TableCell>
+                    <TableCell style={{fontSize: 18, fontWeight: 'bold'}}>
+                      {quantity} contract{quantity>1&&'s'} @ {price > 0 ? currencyFormat(parseFloat(price)) : currencyFormat(selected.lastPrice)}
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </TableContainer>
+
           </CardContent>
+          <CardActions className={classes.dialog}>
+            <Button
+              variant="outlined"
+              style={{marginLeft: 'auto'}}
+              onClick={() => {
+                setSelected({});
+                isSelected({});
+                overrideConfig({quantity: 1});
+                setQuantity(1);
+                setPrice(0);
+              }}
+            >
+              Reset
+            </Button>
+          </CardActions>
         </Card>
       </Grid>
       )}
@@ -401,20 +475,23 @@ function OptionTable({
       </DialogTitle>
       <DialogContent>
         <Grid container>
-          <Grid item xs={12}>
+          <Grid item xs={12} className={classes.dialog}>
             <TextField
               label="Quantity"
+              variant="outlined"
               value={quantity}
               onChange={(e)=>setQuantity(e.target.value)}
               helperText="How many contracts do you own?"
+              inputProps={{min: 0, style: { textAlign: 'right' }}}
               fullWidth
             />
           </Grid>
-          <Grid item xs={12}>
-            <TextField
+          <Grid item xs={12} className={classes.dialog}>
+            <CurrencyTextField
+              variant="outlined"
               label="Price"
               value={price}
-              onChange={(e)=>setPrice(e.target.value)}
+              onChange={(e,v)=>{setPrice(v);}}
               helperText="What was your average cost?"
               fullWidth
             />
@@ -426,11 +503,39 @@ function OptionTable({
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell style={{fontWeight: 'bolder'}} align='right'>Delta</TableCell>
-                  <TableCell style={{fontWeight: 'bolder'}} align='right'>Gamma</TableCell>
-                  <TableCell style={{fontWeight: 'bolder'}} align='right'>Theta</TableCell>
+                  <HtmlTooltip
+                    placement="top"
+                    title="Represents the sensitivity of an option's price to
+                    changes in the value of the underlying security."
+                  >
+                    <TableCell style={{fontWeight: 'bolder'}} align='right'>Delta</TableCell>
+                  </HtmlTooltip>
+                  <HtmlTooltip
+                    placement="top"
+                    title="Represents the rate of change of Delta relative to
+                    the change of the price of the underlying security."
+                  >
+                    <TableCell style={{fontWeight: 'bolder'}} align='right'>Gamma</TableCell>
+                  </HtmlTooltip>
+                  <HtmlTooltip
+                    placement="top"
+                    title="Represents the rate of time decay of an option."
+                  >
+                    <TableCell style={{fontWeight: 'bolder'}} align='right'>Theta</TableCell>
+                  </HtmlTooltip>
+                  <HtmlTooltip
+                    placement="top"
+                    title="Represents an option's sensitivity to volatility."
+                  >
                   <TableCell style={{fontWeight: 'bolder'}} align='right'>Vega</TableCell>
+                  </HtmlTooltip>
+                  <HtmlTooltip
+                    placement="top"
+                    title="Represents how sensitive an option's price is relative
+                    to interest rates."
+                  >
                   <TableCell style={{fontWeight: 'bolder'}} align='right'>Rho</TableCell>
+                  </HtmlTooltip>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -448,7 +553,9 @@ function OptionTable({
             <Typography className={classes.note}>
               Note: These values are an approximation calculated from the <a
               href="https://www.investopedia.com/terms/b/blackscholes.asp">
-              Black-Scholes</a> model and may not be 100% accurate.
+              Black-Scholes</a> model and may not be fully accurate. Hover over
+              any greek variable to learn more. Want a more in-depth
+              explanation with examples? Visit our blog post here.
             </Typography>
           </Grid>
         </Grid>

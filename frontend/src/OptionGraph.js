@@ -21,13 +21,14 @@ import {
   TextField,
   Theme,
   Typography,
+  Paper,
 } from "@material-ui/core";
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import ExpandLessIcon from '@material-ui/icons/ExpandLess';
 import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
 import moment from "moment";
 import blackScholes from "black-scholes";
-import { ResponsiveLine } from '@nivo/line';
+import { ResponsiveLine, Line } from '@nivo/line';
 import { linearGradientDef } from '@nivo/core'
 
 const GainColor = "#00C805";
@@ -50,6 +51,10 @@ const useStyles = makeStyles((theme: Theme) => ({
   spacing: {
     margin: theme.spacing(1),
   },
+  spaceAndPad: {
+    margin: theme.spacing(1),
+    padding: 10,
+  },
   underlined: {
     textDecoration: "underline",
     color: "#FFA500",
@@ -66,7 +71,7 @@ const useStyles = makeStyles((theme: Theme) => ({
     fontStyle: "italic",
   },
   graphContainer: {
-    width: "90%",
+    width: "95%",
     height: 550,
   },
   cardHeader: {
@@ -137,7 +142,7 @@ function OptionGraph({
 }: OptionGraphProps) {
   const classes = useStyles();
   const theme = useTheme();
-  const [stockRange, setStockRange] = React.useState(9);
+  const [stockRange, setStockRange] = React.useState(10);
   const [daysInFutureSlider, setDaysInFutureSlider] = React.useState(0);
   const [daysInFuture, setDaysInFuture] = React.useState(0);
   const [clickEvent, setClickEvent] = React.useState({});
@@ -156,9 +161,9 @@ function OptionGraph({
       Math.abs(moment().diff(moment.unix(expiration).utc(), "days")) - (daysInFuture)) /
       365;
     timeDiffInYears = timeDiffInYears < 0 ? 0 : timeDiffInYears;
+    let adder = stockRange / 100;
     let chartPosData = [];
     let chartNegData = [];
-    let adder = stockRange / 100;
     for (let i = currPrice*(1-stockRange/100); i < currPrice*(1+stockRange/100); i+= adder) {
       let tempObj = {};
       let output = blackScholes.blackScholes(
@@ -171,14 +176,13 @@ function OptionGraph({
       );
       tempObj.x = i;
       tempObj.y = config.quantity * 100 *(output - costPerContract);
-      tempObj.out = output;
       tempObj.d = 100 * (output - costPerContract);
       if (tempObj.y >= 0) {
         chartPosData.push(tempObj);
       } else {
         chartNegData.push(tempObj);
       }
-    };
+    }
 
     var data = [
       {
@@ -193,7 +197,7 @@ function OptionGraph({
 
     const chartTheme = {
       textColor: theme.palette.type === "light" ? "black" : "white",
-      fontSize: 14,
+      fontSize: 11,
       grid: {
           line: {
             stroke: "#C6C6C6",
@@ -206,11 +210,11 @@ function OptionGraph({
           line: {
             strokeWidth: 1,
             stroke: theme.palette.type === "light" ? "black" : "white",
-          },
+          }
         },
         legend: {
           text: {
-            fontSize: 16,
+            fontSize: 14,
             fill: theme.palette.type === "light" ? "black" : "white",
           }
         }
@@ -218,141 +222,142 @@ function OptionGraph({
     };
 
     return (
-      <div className={classes.graphContainer}>
-        <ResponsiveLine
-          data={data}
-          markers={[
-            {
-              axis: 'x',
-              value: clickEvent.data && clickEvent.data.x,
-              lineStyle: { stroke: theme.palette.type === "light" ? "black" : "white", strokeWidth: 1, strokeDasharray: "3 3" },
-            },
-            {
+      <ResponsiveLine
+        curve="basis"
+        data={data}
+        markers={[
+          {
+            axis: 'x',
+            value: clickEvent.data && clickEvent.data.x,
+            lineStyle: { stroke: theme.palette.type === "light" ? "black" : "white", strokeWidth: 1, strokeDasharray: "3 3" },
+          },
+          {
+            axis: 'y',
+            value: clickEvent.data && clickEvent.data.y,
+            lineStyle: { stroke: theme.palette.type === "light" ? "black" : "white", strokeWidth: 1, strokeDasharray: "3 3" },
+          },
+          {
               axis: 'y',
-              value: clickEvent.data && clickEvent.data.y,
-              lineStyle: { stroke: theme.palette.type === "light" ? "black" : "white", strokeWidth: 1, strokeDasharray: "3 3" },
-            },
-            {
-                axis: 'y',
-                value: 0,
-                lineStyle: { stroke: theme.palette.type === "light" ? "black" : "white", strokeWidth: 1 },
-            },
-            {
-                axis: 'x',
-                value: currPrice,
-                lineStyle: { stroke: '#0CB0E6', strokeWidth: 2 },
-                legend: 'Live Stock Price: $' + currPrice,
-                legendPosition: 'top',
-                textStyle: {stroke: '#0CB0E6'},
-            },
-          ]}
-          defs={[
-            linearGradientDef('gradientLoss', [
-              { offset: 0, color: LossColor, opacity: 0 },
-              { offset: 30, color: LossColor, opacity: 0.7 },
-              { offset: 100, color: LossColor, opacity: 1 },
-            ]),
-            linearGradientDef('gradientGain', [
-                { offset: 0, color: GainColor },
-                { offset: 70, color: GainColor, opacity: 0.7 },
-                { offset: 100, color: GainColor, opacity: 0 },
-            ])
-          ]}
-          fill={[
-            // match using function
-            { match: d => d.id === 'negative', id: 'gradientLoss' },
-            { match: d => d.id === 'positive', id: 'gradientGain' },
-            // match all, will only affect 'elm', because once a rule match,
-            // others are skipped, so now it acts as a fallback
-            { match: '*', id: 'gradientGain' },
-          ]}
-          margin={{ top: 50, right: 20, bottom: 80, left: 80 }}
-          xScale={{ type: 'linear', min: 'auto', max: 'auto'}}
-          xFormat=">-$.2f"
-          yScale={{ type: 'linear', min: 'auto', max: 'auto'}}
-          yFormat=" >-$.2f"
-          axisTop={null}
-          axisRight={null}
-          axisBottom={{
-              orient: 'bottom',
-              tickSize: 5,
-              tickPadding: 5,
-              tickRotation: 0,
-              legend: 'Stock Price',
-              legendOffset: 50,
-              legendPosition: 'middle',
-              format: (values) => `$${values}`,
-          }}
-          axisLeft={{
-              axisStyle: {color: 'red'},
-              orient: 'left',
-              tickSize: 5,
-              tickPadding: 5,
-              tickRotation: 0,
-              legend: 'Profit',
-              legendOffset: -65,
-              legendPosition: 'middle',
-              format: (values) => `$${values}`,
-          }}
-          enableArea={true}
-          areaOpacity={0.6}
-          enablePoints={false}
-          useMesh={true}
-          crosshairType='cross'
-          theme={chartTheme}
-          tooltip={(input) => {
-              let sellProfit = input.point.data.y;
-              let exerProfit = 100*config.quantity*(input.point.data.x -
-              costPerContract - selectedOption.strike);
-              let divOrder = sellProfit > exerProfit ?
-                (
-                  <div
-                    style={{
-                        background: 'white',
-                        padding: '9px 12px',
-                        border: '1px solid #ccc',
-                    }}
-                  >
-                    <div style={{color: sellProfit > 0 ? GainColor : LossColor}}>
-                      Sell Returns: {currencyFormat(sellProfit)}
-                    </div>
-                    <div style={{color: exerProfit > 0 ? GainColor : LossColor}}>
-                      Exercise Returns: {currencyFormat(exerProfit)}
-                    </div>
+              value: 0,
+              lineStyle: { stroke: theme.palette.type === "light" ? "black" : "white", strokeWidth: 1 },
+          },
+          {
+              axis: 'x',
+              value: currPrice,
+              lineStyle: { stroke: '#0CB0E6', strokeWidth: 2 },
+              legend: 'Live Stock Price: $' + currPrice,
+              legendPosition: 'top',
+              textStyle: {stroke: '#0CB0E6'},
+          },
+        ]}
+        defs={[
+          linearGradientDef('gradientLoss', [
+            { offset: 0, color: LossColor, opacity: 0 },
+            { offset: 30, color: LossColor, opacity: 0.7 },
+            { offset: 100, color: LossColor, opacity: 1 },
+          ]),
+          linearGradientDef('gradientGain', [
+              { offset: 0, color: GainColor },
+              { offset: 70, color: GainColor, opacity: 0.7 },
+              { offset: 100, color: GainColor, opacity: 0 },
+          ])
+        ]}
+        fill={[
+          // match using function
+          { match: d => d.id === 'negative', id: 'gradientLoss' },
+          { match: d => d.id === 'positive', id: 'gradientGain' },
+          // match all, will only affect 'elm', because once a rule match,
+          // others are skipped, so now it acts as a fallback
+          { match: '*', id: 'gradientGain' },
+        ]}
+        margin={{ top: 40, right: 20, bottom: 80, left: 80 }}
+        xScale={{ type: 'linear', min: 'auto', max: 'auto'}}
+        xFormat=">-$.2f"
+        yScale={{ type: 'linear', min: 'auto', max: 'auto'}}
+        yFormat=" >-$.2f"
+        axisTop={null}
+        axisRight={null}
+        axisBottom={{
+            orient: 'bottom',
+            tickSize: 5,
+            tickPadding: 5,
+            tickRotation: 0,
+            legend: 'Stock Price',
+            legendOffset: 50,
+            legendPosition: 'middle',
+            format: (values) => `$${values}`,
+        }}
+        axisLeft={{
+            axisStyle: {color: 'red'},
+            orient: 'left',
+            tickSize: 5,
+            tickPadding: 5,
+            tickRotation: 0,
+            legend: 'Profit',
+            legendOffset: -65,
+            legendPosition: 'middle',
+            format: (values) => `$${values}`,
+        }}
+        enableArea={false}
+        areaOpacity={0.4}
+        enablePoints={false}
+        useMesh={true}
+        crosshairType='cross'
+        theme={chartTheme}
+        tooltip={(input) => {
+            let sellProfit = input.point.data.y;
+            let exerProfit = 100*config.quantity*(input.point.data.x -
+            costPerContract - selectedOption.strike);
+            let divOrder = sellProfit > exerProfit ?
+              (
+                <div
+                  style={{
+                      background: 'white',
+                      padding: '9px 12px',
+                      border: '1px solid #ccc',
+                  }}
+                >
+                  <div style={{color: sellProfit > 0 ? GainColor : LossColor}}>
+                    Sell Returns: {currencyFormat(sellProfit)}
                   </div>
-                ) :
-                (
-                  <div
-                    style={{
-                        background: 'white',
-                        padding: '9px 12px',
-                        border: '1px solid #ccc',
-                    }}
-                  >
-                    <div style={{color: exerProfit > 0 ? GainColor : LossColor}}>
-                      Exercise Returns: {currencyFormat(exerProfit)}
-                    </div>
-                    <div style={{color: sellProfit > 0 ? GainColor : LossColor}}>
-                      Sell Returns: {currencyFormat(sellProfit)}
-                    </div>
+                  <div style={{color: exerProfit > 0 ? GainColor : LossColor}}>
+                    Exercise Returns: {currencyFormat(exerProfit)}
                   </div>
-              );
-              return divOrder;
-            }}
-          colors={d=>d.id === 'positive' ? GainColor : LossColor}
-          onClick={(p, e)=> setClickEvent(p)}
-        />
-      </div>
+                </div>
+              ) :
+              (
+                <div
+                  style={{
+                      background: 'white',
+                      padding: '9px 12px',
+                      border: '1px solid #ccc',
+                  }}
+                >
+                  <div style={{color: exerProfit > 0 ? GainColor : LossColor}}>
+                    Exercise Returns: {currencyFormat(exerProfit)}
+                  </div>
+                  <div style={{color: sellProfit > 0 ? GainColor : LossColor}}>
+                    Sell Returns: {currencyFormat(sellProfit)}
+                  </div>
+                </div>
+            );
+            return divOrder;
+          }}
+        colors={d=>d.id === 'positive' ? GainColor : LossColor}
+        onClick={(p, e)=> setClickEvent(p)}
+      />
     );
   };
 
   return (
     <>
-      <Grid container spacing={3} className={classes.spacing} justify="center">
-        <Grid item xs={12} md={6}>
-          <Grid container direction="column" spacing={3}>
+      <Grid container spacing={3} className={classes.spacing} justify="space-evenly">
+        <Grid item xs={12} md={clickEvent.data ? 8 : 12}>
+          <Grid container direction="column" spacing={2}>
             <Grid item>
-              {generateChart()}
+              <div className={classes.graphContainer}>
+                {generateChart()}
+              </div>
             </Grid>
             <Grid item style={{width: "95%"}}>
               <Grid container alignItems="stretch" justify="flex-start">
@@ -363,17 +368,14 @@ function OptionGraph({
                 </Grid>
                 <Grid item xs>
                   <Typography id="range-slider" gutterBottom variant='h6'>
-                    Stock Price Axis Range: ± {stockRange}%
+                    Stock Price Axis Range: ± {Math.floor(stockRange)}%
                   </Typography>
                 </Grid>
               </Grid>
               <StyledSlider
-                value={stockRange}
                 min={1}
-                step={0.5}
-                max={50}
+                value={stockRange}
                 onChange={(e, nV) => setStockRange(nV)}
-                aria-labelledby="non-range-slider"
               />
             </Grid>
             <Grid item style={{width: "95%"}}>
@@ -400,24 +402,23 @@ function OptionGraph({
             </Grid>
           </Grid>
         </Grid>
-        <Grid item xs={12} md={6}>
+        {clickEvent.data && (
+        <Grid item xs={12} md={4}>
           <Card>
             <CardHeader
               classes={{
                 title: classes.CardHeader,
               }}
-              titleTypographyProps={{ variant: "h5", fontStyle: "bold" }}
-              title={clickEvent.data ? (`The date is ${moment()
-                .add(daysInFuture, 'day').format('MMM Do')} // ${symbol} is at
+              titleTypographyProps={{ variant: "h5" }}
+              title={clickEvent.data ? (`Exit on  ${moment()
+                .add(daysInFuture, 'day').format('MMM D')} with ${symbol} at
                 ${currencyFormat(clickEvent.data.x)}`) :
                     ('Interact with the graph to view your potential exits')}
-              subheader="Expand To See Details"
+              subheader="Chart Interaction - Expand To See Details"
             />
           <Collapse in={expanded && clickEvent.data} timeout="auto" unmountOnExit>
             <CardContent>
-              {clickEvent.data && (
-              <>
-                <Typography variant='h4' style={{marginBottom: 10, textDecoration: 'underline'}}>
+                <Typography variant='h5' style={{marginBottom: 10, fontWeight:'bold'}}>
                   Exercise Your Options
                 </Typography>
                 <Typography paragraph>
@@ -442,7 +443,7 @@ function OptionGraph({
                   {currencyFormat(config.quantity*100*clickEvent.data.x)}</span> - <span className={classes.underlinedLiability}>
                   {currencyFormat(config.quantity*(100*costPerContract + 100*selectedOption.strike))}</span>)
                 </Typography>
-                <Typography variant='h4' style={{marginBottom: 10, textDecoration: 'underline'}}>
+                <Typography variant='h5' style={{marginBottom: 10, fontWeight:'bold'}}>
                   Sell Your Options
                 </Typography>
                 <Typography paragraph>
@@ -460,8 +461,6 @@ function OptionGraph({
                   {currencyFormat(clickEvent.data.d * config.quantity)}</span> (
                   {(clickEvent.data.d / costPerContract).toFixed(2)}%)
                 </Typography>
-              </>
-              )}
             </CardContent>
             </Collapse>
             <CardActions>
@@ -473,6 +472,7 @@ function OptionGraph({
             </CardActions>
           </Card>
         </Grid>
+        )}
       </Grid>
     </>
   );

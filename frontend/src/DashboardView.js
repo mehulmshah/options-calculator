@@ -128,7 +128,7 @@ const bothAnim = merge(bounce, bounceInDown);
 
 const animationStyles = StyleSheet.create({
   bounce: {
-    animationName: bothAnim,
+    animationName: bounceInDown,
     animationDuration: '2s',
     height: 60,
     width: 50,
