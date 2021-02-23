@@ -28,7 +28,7 @@ import ExpandLessIcon from '@material-ui/icons/ExpandLess';
 import InfoOutlinedIcon from '@material-ui/icons/InfoOutlined';
 import moment from "moment";
 import blackScholes from "black-scholes";
-import { ResponsiveLine, Line } from '@nivo/line';
+import { ResponsiveLine, Line, ResponsiveLineCanvas, LineCanvas } from '@nivo/line';
 import { linearGradientDef } from '@nivo/core'
 
 const GainColor = "#00C805";
@@ -161,10 +161,10 @@ function OptionGraph({
       Math.abs(moment().diff(moment.unix(expiration).utc(), "days")) - (daysInFuture)) /
       365;
     timeDiffInYears = timeDiffInYears < 0 ? 0 : timeDiffInYears;
-    let adder = stockRange / 100;
+    let adder = stockRange / 200;
     let chartPosData = [];
     let chartNegData = [];
-    for (let i = currPrice*(1-stockRange/100); i < currPrice*(1+stockRange/100); i+= adder) {
+    for (let i = currPrice*(1-adder); i < currPrice*(1+adder); i+= adder) {
       let tempObj = {};
       let output = blackScholes.blackScholes(
         i,
@@ -179,9 +179,12 @@ function OptionGraph({
       tempObj.d = 100 * (output - costPerContract);
       if (tempObj.y >= 0) {
         chartPosData.push(tempObj);
+        chartNegData.push({x: tempObj.x, y: null, d: null});
       } else {
         chartNegData.push(tempObj);
+        chartPosData.push({x: tempObj.x, y: null, d: null})
       }
+
     }
 
     var data = [
@@ -192,8 +195,9 @@ function OptionGraph({
       {
         id: 'negative',
         data: chartNegData
-      }
+      },
     ];
+    let areaBaseline = data[0].data[0].y > 0 ? data[0].data[0].y : 0;
 
     const chartTheme = {
       textColor: theme.palette.type === "light" ? "black" : "white",
@@ -224,6 +228,7 @@ function OptionGraph({
     return (
       <ResponsiveLine
         curve="basis"
+        animate={false}
         data={data}
         markers={[
           {
@@ -266,11 +271,10 @@ function OptionGraph({
           // match using function
           { match: d => d.id === 'negative', id: 'gradientLoss' },
           { match: d => d.id === 'positive', id: 'gradientGain' },
-          // match all, will only affect 'elm', because once a rule match,
-          // others are skipped, so now it acts as a fallback
           { match: '*', id: 'gradientGain' },
         ]}
         margin={{ top: 40, right: 20, bottom: 80, left: 80 }}
+        areaBaselineValue={areaBaseline}
         xScale={{ type: 'linear', min: 'auto', max: 'auto'}}
         xFormat=">-$.2f"
         yScale={{ type: 'linear', min: 'auto', max: 'auto'}}
@@ -298,7 +302,7 @@ function OptionGraph({
             legendPosition: 'middle',
             format: (values) => `$${values}`,
         }}
-        enableArea={false}
+        enableArea={true}
         areaOpacity={0.4}
         enablePoints={false}
         useMesh={true}
